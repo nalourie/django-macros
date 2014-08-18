@@ -76,7 +76,6 @@ def set_repeated_blocks(parser):
         parser._repeated_blocks = {}
 
 
-
 @register.tag
 def repeated_block(parser, token):
     try:
@@ -94,7 +93,6 @@ def repeated_block(parser, token):
     # return a normal block node so that it behaves exactly
     # as people would expect.
     return block_node
-
 
 
 @register.tag

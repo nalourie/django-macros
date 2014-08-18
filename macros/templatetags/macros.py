@@ -154,12 +154,14 @@ def do_loadmacros(parser, token):
     if filename[0] in ('"', "'") and filename[-1] == filename[0]:
         filename = filename[1:-1]
     else:
-        raise template.TemplateSyntaxError, "
+        m = ("Malformed arguments to the {0} template tag.".format(tag_name) +
+        " Argument must be in quotes.")
+        raise template.TemplateSyntaxError, m
     t = get_template(filename)
     macros = t.nodelist.get_nodes_by_type(DefineMacroNode)
     ## Metadata of each macro are stored in a new attribute
     ## of 'parser' class. That way we can access it later
-    ## in the template when processing 'usemacro' tags.
+    ## in the template when processing 'use_macro' tags.
     _setup_macros_dict(parser)
     for macro in macros:
         parser._macros[macro.name] = macro
