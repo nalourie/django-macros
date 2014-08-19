@@ -1,13 +1,10 @@
-write some tests for the package.
+To Do:
+    0.) get rid of the m = ..., raise template.... pattern. It needlessly sets a variable which is just a wasted computation.
+    1.) get/validate args using regexes (see paragraph at bottom)
+    2.) add validation on the number or args passed into macro_block via extended syntax, the name of the arguments, not repeating named arguments, and not having text outside of block tags.
+    3.) add more validation to args in general
+    4.) write tests for exceptions in macros.py
+    5.) check out if we can take advantage of django's built in inclusion tags/include tag to make the code more elegant/robust.
+    6.) package it up with distutils and upload the package to pip.
 
 should really use regexes/match to parse between arguments and keyword arguments, etc..., since the current method will throw an exception if the person inputs an argument with an equals sign, like "asdf=asdf". Also, regexes could provide validation. Since comparing against these regexes could be expensive, it might be better to create the kw argument dictionaries in the do_blocks and then pass the pre-made dictionaries to the tags, rather than having the tags figure it out. Also, there's no support for template variables. Should add that as well.
-
-get rid of the m = ..., raise template.... pattern. It needlessly sets a variable which is just a wasted computation.
-
-add more validation to the package, testing the variables passed by users into templates.
-
-package it up with distutils and upload the package to pip.
-
-check out if we can take advantage of django's built in inclusion tags/include tag to make the code more elegant/robust.
-
-should add some validation on the number of args/kwargs passed in via extended syntax. -> think about throwing an exception for having anything outside of argument block tags.

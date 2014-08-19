@@ -63,9 +63,9 @@ def do_macro(parser, token):
         bits = token.split_contents()
         tag_name, macro_name, args = bits[0], bits[1], bits[2:]
     except IndexError:
-        m = "'{0}' tag requires at least one argument (macro name)".format(
-            token.contents.split()[0])
-        raise template.TemplateSyntaxError, m
+        raise template.TemplateSyntaxError(
+            "'{0}' tag requires at least one argument (macro name)".format(
+            token.contents.split()[0]))
     # Need to add some validation here
     nodelist = parser.parse(('endmacro', ))
     parser.delete_first_token()
@@ -95,15 +95,15 @@ def do_loadmacros(parser, token):
     try:
         tag_name, filename = token.split_contents()
     except ValueError:
-        m = "'{0}' tag requires at least one argument (macro name)".format(
-            token.contents.split()[0])
-        raise template.TemplateSyntaxError, m
+        raise template.TemplateSyntaxError(
+            "'{0}' tag requires at least one argument (macro name)".format(
+            token.contents.split()[0]))
     if filename[0] in ('"', "'") and filename[-1] == filename[0]:
         filename = filename[1:-1]
     else:
-        m = ("Malformed arguments to the {0} template tag.".format(tag_name) +
-        " Argument must be in quotes.")
-        raise template.TemplateSyntaxError, m
+        raise template.TemplateSyntaxError(
+            "Malformed arguments to the {0} template tag.".format(tag_name) +
+            " Argument must be in quotes.")
     t = get_template(filename)
     macros = t.nodelist.get_nodes_by_type(DefineMacroNode)
     ## Metadata of each macro are stored in a new attribute
@@ -154,14 +154,14 @@ def do_usemacro(parser, token):
         bits = token.split_contents()
         tag_name, macro_name, values = bits[0], bits[1], bits[2:]
     except IndexError:
-        m = ("'%s' tag requires at least one argument (macro name)"
-             % token.contents.split()[0])
-        raise template.TemplateSyntaxError, m
+        raise template.TemplateSyntaxError(
+            "{0} tag requires at least one argument (macro name)".format(
+                token.contents.split()[0]))
     try:
         macro = parser._macros[macro_name]
     except (AttributeError, KeyError):
-        m = "Macro '%s' is not defined" % macro_name
-        raise template.TemplateSyntaxError, m
+        raise template.TemplateSyntaxError(
+            "Macro '{0}' is not defined".format(macro_name))
  
     fe_kwargs = {}
     fe_args = []
@@ -227,8 +227,8 @@ def do_macro_block(parser, token):
     try:
         macro = parser._macros[macro]
     except (AttributeError, KeyError):
-        m = "Macro '%s' is not defined" % macro
-        raise template.TemplateSyntaxError, m
+        raise template.TemplateSyntaxError(
+            "Macro '{0}' is not defined".format(macro))
     # get the arg and kwarg nodes from the nodelist
     nodelist = parser.parse(('endmacro_block', ))
     parser.delete_first_token()
@@ -289,9 +289,9 @@ def do_macro_kwarg(parser, token):
     try:
         tag_name, keyword = token.split_contents()
     except ValueError:
-        m = "{0} tag requires exactly one argument, a keyword".format(
-            token.contents.split()[0])
-        raise template.TemplateSyntaxError(m)
+        raise template.TemplateSyntaxError(
+            "{0} tag requires exactly one argument, a keyword".format(
+            token.contents.split()[0]))
     # add some validation of the keyword argument here.
     nodelist = parser.parse(('endmacro_kwarg', ))
     parser.delete_first_token()
