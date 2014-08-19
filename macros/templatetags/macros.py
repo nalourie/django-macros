@@ -7,75 +7,8 @@
 # updated for django 1.6, modified, and packaged by Nicholas Lourie,
 # while working for kozbox, llc. http://kozbox.com
 
-"""
-Installation:
-
-    See readme in root directory, or visit the git at
-    https://github.com/nalourie/django-macros
-
-
-Useage:
-
-    At the beginning of your file include:
-        {% load macros %}
-
-    When you have a section of your template you want to repeat, but
-    don't want to have inherited or any other block tag-like functionality,
-    define a macro as follows:
-
-        {% macro some_macro_name arg1 arg2 kwarg="default" %}
-            {{ arg1 }} was the first argument.
-            {{ arg2 }} was the second argument.
-
-            {% if kwarg %}This is a {{ kwarg }}. {% endif %}
-        {% endmacro %}
-
-    Then when you want to use the macro, simply do:
-
-        {% use_macro "foo" "bar" kwarg="nondefault value" %}
-
-        renders to:
-
-        foo was the first argument.
-        bar was the second argument.
-        This is a nondefault value.
-
-    Alternatively, you can save your macros in a separate file,
-    e.g. "mymacros.html" and load it into the template with the
-    tag {% loadmacros "mymacros.html" %} then use them with the
-    {% use_macro ... %} tag.
-
-
-    All macros, including loaded ones, are local to the template
-    file they are loaded into/defined in, and are not inherited
-    through {% extends ... %} tags.
-
-
-    A more in-depth useage example:
-        Macro:
-            {% macro test2args1kwarg arg1 arg2 baz="Default baz" %}
-                {% firstof arg1 "default arg1" %}
-                {% if arg2 %}{{ arg2 }}{% else %}default arg2{% endif %}
-                {{ baz }}
-            {% endmacro %}
-            
-         
-            {% use_macro test2args1kwarg "foo" "bar" baz="KW" %}
-            <br>
-            {% use_macro test2args1kwarg num_pages "bar" %}
-            <br>
-            {% use_macro test2args1kwarg %}
-            <br>
-            {% use_macro test2args1kwarg "new" "foobar"|join:"," baz="diff kwarg" %}
-
-
-         
-        renders as:
-     
-            foo bar KW
-            77 bar Default baz
-            default arg1 default arg2 Default baz
-            new f,o,o,b,a,r diff kwarg
+""" Macros.py, part of django-macros, allows for creation of
+macros within django templates.
 """
  
 from django import template
@@ -86,6 +19,9 @@ register = template.Library()
  
  
 def _setup_macros_dict(parser):
+    """ initiates the _macros attribute on the parser
+    object, allowing for storage of the macros in the parser.
+    """
     ## Metadata of each macro are stored in a new attribute
     ## of 'parser' class. That way we can access it later
     ## in the template when processing 'use_macro' tags.
@@ -97,6 +33,9 @@ def _setup_macros_dict(parser):
  
  
 class DefineMacroNode(template.Node):
+    """ The template tag node object for the tag
+    which defines a macro.
+    """
     def __init__(self, name, nodelist, args):
  
         self.name = name
@@ -117,6 +56,9 @@ class DefineMacroNode(template.Node):
  
 @register.tag(name="macro")
 def do_macro(parser, token):
+    """ the function taking the parsed tag and returning
+    a DefineMacroNode object.
+    """
     try:
         bits = token.split_contents()
         tag_name, macro_name, args = bits[0], bits[1], bits[2:]
@@ -124,8 +66,7 @@ def do_macro(parser, token):
         m = "'{0}' tag requires at least one argument (macro name)".format(
             token.contents.split()[0])
         raise template.TemplateSyntaxError, m
-    # TODO: could do some validations here,
-    # for now, "blow your head clean off"
+    # Need to add some validation here
     nodelist = parser.parse(('endkwacro', ))
     parser.delete_first_token()
  
@@ -138,6 +79,9 @@ def do_macro(parser, token):
  
  
 class LoadMacrosNode(template.Node):
+    """ The template tag node for loading macros from
+    an external sheet.
+    """
     def render(self, context):
         ## empty string - {% loadmacros %} tag does no output
         return ''
@@ -145,6 +89,9 @@ class LoadMacrosNode(template.Node):
  
 @register.tag(name="loadmacros")
 def do_loadmacros(parser, token):
+    """ The function taking a parsed tag and returning
+    a LoadMacrosNode object.
+    """
     try:
         tag_name, filename = token.split_contents()
     except ValueError:
@@ -169,6 +116,9 @@ def do_loadmacros(parser, token):
  
  
 class UseMacroNode(template.Node):
+    """ Template tag Node object for the tag which
+    uses a macro.
+    """
  
     def __init__(self, macro, fe_args, fe_kwargs):
         self.macro = macro
@@ -197,9 +147,12 @@ class UseMacroNode(template.Node):
  
 @register.tag(name="use_macro")
 def do_usemacro(parser, token):
+    """ The function taking a parsed template tag
+    and returning a UseMacroNode.
+    """
     try:
-        args = token.split_contents()
-        tag_name, macro_name, values = args[0], args[1], args[2:]
+        bits = token.split_contents()
+        tag_name, macro_name, values = bits[0], bits[1], bits[2:]
     except IndexError:
         m = ("'%s' tag requires at least one argument (macro name)"
              % token.contents.split()[0])
@@ -224,3 +177,122 @@ def do_usemacro(parser, token):
  
     macro.parser = parser
     return UseMacroNode(macro, fe_args, fe_kwargs)
+
+
+class MacroBlockNode(template.Node):
+    """ Template node object for the extended
+    syntax macro useage.
+    """
+    def __init__(self, macro, nodelist, args, kwargs):
+        self.macro = macro
+        self.nodelist = nodelist
+        self.args = args
+        self.kwargs = kwargs
+
+    def render(self, context):
+        # take the macro_block's args, and sub them
+        # into the context for macro's args.
+        for i, arg in enumerate(self.macro.args):
+            try:
+                context[arg] = self.args[i].nodelist.render(context)
+            except IndexError:
+                # have missing args fail silently as usual
+                context[arg] = ""
+
+        # take macro_block's kwargs, and sub them
+        # into the context for macro's kwargs.
+        for name, default in self.macro.kwargs.iteritems():
+            try:
+                # add the rendered contents of the tag to the context
+                context[name] = self.kwargs[name].nodelist.render(context)
+            except KeyError:
+                context[name] = FilterExpression(default,
+                    self.macro.parser).resolve(context)
+
+        return self.macro.nodelist.render(context)
+
+
+@register.tag(name="macro_block")
+def do_macro_block(parser, token):
+    """ Function taking parsed template tag
+    to a MacroBlockNode.
+    """
+    try:
+        tag_name, macro = token.split_contents()
+    except ValueError:
+        raise template.TemplateSyntaxError(
+            "{0} tag requires exactly one argument,".format(
+                tag_name) + " a macro's name")
+    ## need to add some extra validation here.
+    try:
+        macro = parser._macros[macro_name]
+    except (AttributeError, KeyError):
+        m = "Macro '%s' is not defined" % macro_name
+        raise template.TemplateSyntaxError, m
+    # get the arg and kwarg nodes from the nodelist
+    nodelist = parser.parse(('endmacro_block', ))
+    parser.delete_first_token()
+    args = nodelist.get_nodes_by_type(MacroArgNode)
+    kwargs = dict((x.keyword, x) for x in
+        nodelist.get_nodes_by_type(MacroKwargNode))
+    macro.parser = parser
+    return MacroBlockNode(macro, nodelist, args, kwargs)
+
+
+class MacroArgNode(template.Node):
+    """ Template node object for defining a
+    positional argument to a MacroBlockNode.
+    """
+    def __init__(self, nodelist):
+        # save the tag's contents
+        self.nodelist = nodelist
+    def render(self, context):
+        # macro_arg tags output nothing.
+        return ''
+
+
+
+@register.tag(name="macro_arg")
+def do_macro_arg(parser, token):
+    """ Function taking a parsed template tag
+    to a MacroArgNode.
+    """
+    # macro_arg takes no arguments, so we don't
+    # need to split the token/do validation.
+    nodelist = parser.parse(('endmacro_arg',))
+    parser.delete_first_token()
+    # simply save the contents to a MacroArgNode.
+    return MacroArgNode(nodelist)
+
+
+class MacroKwargNode(template.Node):
+    """ Template node object for defining a
+    keyword argument to a MacroBlockNode.
+    """
+    def __init__(self, keyword, nodelist):
+        # save keyword so we know where to
+        # substitute it later.
+        self.keyword = keyword
+        # save the tag's contents
+        self.nodelist = nodelist
+
+    def render(self, context):
+        # macro_kwarg tags output nothing.
+        return ''
+
+
+@register.tag(name="macro_kwarg")
+def do_macro_kwarg(template.Node):
+    """ Function taking a parsed template tag
+    to a MacroKwargNode.
+    """
+    try:
+        tag_name, keyword = token.split_contents()
+    except ValueError:
+        m = "{0} tag requires exactly one argument, a keyword".format(
+            token.contents.split()[0])
+        raise template.TemplateSyntaxError(m)
+    # add some validation of the keyword argument here.
+    nodelist = parser.parse(('endmacro_kwarg', ))
+    parser.delete_first_token()
+    return MacroKwargNode(keyword, nodelist)

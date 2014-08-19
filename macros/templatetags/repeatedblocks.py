@@ -1,62 +1,8 @@
 # the following file was written/built by Nicholas Lourie,
 # while working for kozbox, llc. http://kozbox.com
 
-"""
-Installation:
-
-    See readme in root directory, or visit the git at
-    https://github.com/nalourie/django-macros
-
-
-Useage:
-
-    At the beginning of your file include:
-        {% load repeatedblocks %}
-        
-    When you have a block that you want to repeat, instead of
-    using a block tag, use a repeated block:
-
-        {% repeatedblock some_block name %}
-            ...
-            ...
-            ...
-        {% endblock %}
-
-    Later, when you want to repeat that block again, simply
-    include the repeat tag:
-
-        {% repeat some_block name %}
-
-
-    Thus, the following template:
-
-        {% repeatedblock title %}Repeated Block Tags{% endblock %}
-
-        {% repeat title %}
-
-    Renders to:
-
-        Repeated Block Tags
-
-        Repeated Block Tags
-
-    Make sure that the {% repeat ... %} tag comes after the
-    {% repeatedblock ... %} ... {% endblock %} tag.
-
-    They are fully inheritable, repeat inherited content and
-    should work exactly as you'd expect a block tag to work.
-"""
-
-"""
-Design Explanation:
-
-Using a "repeatedblock" followed by "repeat" tag
-structure, as opposed to just repeating normal block tags
-forces developers to be more explicit about what is repeated.
-Thus, it guards against the potential to remove block
-tags later in development, not realize they are repeated,
-and create an error later. Hence, we've chosen this design since 
-it's more advantageous/pythonic in being explicit as well as dry.
+""" repeatedblocks.py, part of django-macros, allows for easy
+and explicit repetition of block tags in django templates.
 """
 
 from django import template
