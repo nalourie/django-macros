@@ -53,8 +53,8 @@ def repeat(parser, token):
     try:
         block_node = parser._repeated_blocks[block_name]
     except (AttributeError, KeyError):
-        raise ValueError(
-            "No block {0} tag was found before the {1} tag".format(
+        raise template.TemplateSyntaxError(
+            "No repeated block {0} tag was found before the {1} tag".format(
                 block_name, tag_name))
     # return the block to be repeated
     return block_node

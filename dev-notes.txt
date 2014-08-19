@@ -1,11 +1,11 @@
-need to finish extended syntax macros.
-
-should really use regexes/match to parse between arguments and keyword arguments, etc..., since the current method will throw a but if the person inputs an argument with an equals sign, like "asdf=asdf". Also, regexes could provide validation. Since comparing against these regexes could be expensive, it might be better to create the kw argument dictionaries in the do_blocks and then pass the pre-made dictionaries to the tags, rather than having the tags figure it out. Also, there's no support for template variables. Should add that as well.
-
 write some tests for the package.
 
-package it up with distutils and upload the package to pip.
+should really use regexes/match to parse between arguments and keyword arguments, etc..., since the current method will throw an exception if the person inputs an argument with an equals sign, like "asdf=asdf". Also, regexes could provide validation. Since comparing against these regexes could be expensive, it might be better to create the kw argument dictionaries in the do_blocks and then pass the pre-made dictionaries to the tags, rather than having the tags figure it out. Also, there's no support for template variables. Should add that as well.
 
 get rid of the m = ..., raise template.... pattern. It needlessly sets a variable which is just a wasted computation.
 
 add more validation to the package, testing the variables passed by users into templates.
+
+package it up with distutils and upload the package to pip.
+
+check out if we can take advantage of django's built in inclusion tags/include tag to make the code more elegant/robust.
