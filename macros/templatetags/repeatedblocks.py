@@ -27,7 +27,7 @@ def repeated_block(parser, token):
     try:
         tag_name, block_name = token.split_contents()
     except ValueError:
-        raise template.TemplateSyntexError(
+        raise template.TemplateSyntaxError(
             '{0} tag takes only one argument'.format(
                 token.contents.split()[0]))
     # initialize attribute storing block contents on parser
@@ -46,7 +46,7 @@ def repeat(parser, token):
     try:
         tag_name, block_name = token.split_contents()
     except ValueError:
-        raise template.TemplateSyntexError(
+        raise template.TemplateSyntaxError(
             '{0} tag takes only one argument'.format(
                 token.contents.split()[0]))
     # try to fetch the stored block

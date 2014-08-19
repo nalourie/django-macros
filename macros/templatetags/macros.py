@@ -282,7 +282,7 @@ class MacroKwargNode(template.Node):
 
 
 @register.tag(name="macro_kwarg")
-def do_macro_kwarg(template.Node):
+def do_macro_kwarg(parser, token):
     """ Function taking a parsed template tag
     to a MacroKwargNode.
     """
