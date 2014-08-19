@@ -67,7 +67,7 @@ def do_macro(parser, token):
             token.contents.split()[0])
         raise template.TemplateSyntaxError, m
     # Need to add some validation here
-    nodelist = parser.parse(('endkwacro', ))
+    nodelist = parser.parse(('endmacro', ))
     parser.delete_first_token()
  
     ## Metadata of each macro are stored in a new attribute

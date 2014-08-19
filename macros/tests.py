@@ -236,13 +236,93 @@ from .templatetags.macros import _setup_macros_dict
 
 class MacrosTests(TestCase):
 
+    # Template pieces
+        # (all templates are at the top so they can
+        # be easily changed/reused 
     LOAD_MACROS = "{% load macros %}"
+    # load macros test
     TEST_LOADMACROS_TAG = (
         "{% loadmacros 'macros/test/testmacros.html' %}"
         "{% use_macro 'foo' 'bar' %}")
-    
-    # test assumptions
-        ## no obvious assumptions made about implementation.
+    # define a macro
+    MACRO1_DEFINITION = (
+        "{% macro macro1 first_arg second_arg first_kwarg=''"
+        " second_kwarg='default' %}"
+            "first arg: {{ first_arg }}; "
+            "second arg: {{ second_arg }}; "
+            "first_kwarg: {{ first_kwarg }}; "
+            "second_kwarg: {{ second_kwarg }};"
+        "{% endmacro %}")
+    # test default values
+    USE_MACRO1_WITH_DEFAULTS = (
+        "{% use_macro macro1 'foo' 'bar' %}")
+    MACRO1_BLOCK_WITH_DEFAULTS = (
+        "{% macro_block macro1 %}"
+            "{% macro_arg %}foo{% endmacro_arg %}"
+            "{% macro_arg %}bar{% endmacro_arg %}"
+        "{% endmacro_block %}")
+    MACRO1_WITH_DEFAULTS_RENDERED = (
+        "first arg: foo; second arg: bar; "
+        "first_kwarg: ; second_kwarg: default;")
+    # test using only one default, overriding the other
+    USE_MACRO1_WITH_ONE_DEFAULT = (
+        "{% use_macro macro1 'bar' 'foo' first_kwarg='value' %}")
+    MACRO1_BLOCK_WITH_ONE_DEFAULT = (
+        "{% macro_block macro1 %}"
+            "{% macro_arg %}bar{% endmacro_arg %}"
+            "{% macro_arg %}foo{% endmacro_arg %}"
+            "{% macro_kwarg first_kwarg %}value{% endmacro_kwarg %}"
+        "{% endmacro_block %}")
+    MACRO1_WITH_ONE_DEFAULT_RENDERED = (
+        "first arg: bar; second arg: foo; "
+        "first_kwarg: value; second_kwarg: default;")
+    # test overriding all defaults
+    USE_MACRO1_WITH_NO_DEFAULTS = (
+        "{% use_macro macro1 'one' 'two' "
+        "first_kwarg='value1' second_kwarg='value2' %}")
+    MACRO1_BLOCK_WITH_NO_DEFAULTS = (
+        "{% macro_block macro1 %}"
+            "{% macro_arg %}one{% endmacro_arg %}"
+            "{% macro_arg %}two{% endmacro_arg %}"
+            "{% macro_kwarg first_kwarg %}value1{% endmacro_kwarg %}"
+            "{% macro_kwarg second_kwarg %}value2{% endmacro_kwarg %}"
+        "{% endmacro_block %}")
+    MACRO1_WITH_NO_DEFAULTS_RENDERED = (
+        "first arg: one; second arg: two; "
+        "first_kwarg: value1; second_kwarg: value2;")
+    # test using macro with no args
+    USE_MACRO1_NO_ARGS = (
+        "{% use_macro macro1 %}")
+    MACRO1_BLOCK_NO_ARGS = (
+        "{% macro_block macro1 %}{% endmacro_block %}")
+    MACRO1_NO_ARGS_RENDERED = (
+        "first arg: ; second arg: ; "
+        "first_kwarg: ; second_kwarg: default;")
+    # test using a filter with the use_macro syntax
+    USE_MACRO1_WITH_FILTER = (
+        "{% use_macro macro1 'foobar'|join:'-' %}")
+    MACRO1_WITH_FILTER_RENDERED = (
+        "first arg: f-o-o-b-a-r; second arg: ; "
+        "first_kwarg: ; second_kwarg: default;")
+    # Define a second macro (test lexical scoping of args)
+    MACRO2_DEFINITION = (
+        "{% macro macro2 first_arg second_arg "
+        "first_kwarg='one' second_kwarg='two' %}"
+            "second macro contents:{{ first_arg }},"
+            "{{ second_arg }},{{ first_kwarg }},"
+            "{{ second_kwarg }};"
+        "{% endmacro %}")
+    USE_MACRO2 = (
+        "{% use_macro macro2 'first' 'second' "
+        "first_kwarg='new_one' %}")
+    MACRO2_BLOCK = (
+        "{% macro_block macro2 %}"
+            "{% macro_arg %}first{% endmacro_arg %}"
+            "{% macro_arg %}second{% endmacro_arg %}"
+            "{% macro_kwarg first_kwarg %}new_one{% endmacro_kwarg %}"
+        "{% endmacro_block %}")
+    MACRO_2_RENDERED = (
+        "second macro contents:first,second,new_one,two;")
     
     # test functionality
 
@@ -317,32 +397,145 @@ class MacrosTests(TestCase):
         """ check that the macro tag actually sets
         the node in the parser.
         """
-        pass
+        p = make_parser(self.LOAD_MACROS + self.MACRO1_DEFINITION)
+        # parse the template to run the template tags
+        nodelist = p.parse()
+        # check that the macro is added to the parser
+        self.assertTrue(hasattr(p, "_macros"))
+        self.assertIn("macro1", p._macros)
 
-    def test_use_macro_works(self):
-        """ test several use cases/renderings of the
-        use_macro tag.
+    def test_use_macro_with_defaults(self):
+        """ make sure that the use_macro tag uses default
+        values for kwargs when values aren't supplied
         """
-        pass
+        t = Template(self.LOAD_MACROS + self.MACRO1_DEFINITION +
+            self.USE_MACRO1_WITH_DEFAULTS)
+        c = Context({})
+        self.assertEqual(t.render(c), self.MACRO1_WITH_DEFAULTS_RENDERED)
 
-    def test_macro_block_works(self):
-        """ test several use cases/renderings of the
-        macro_block tag.
+    def test_macro_block_with_defaults(self):
+        """ make sure that the macro_block tag uses default
+        values for kwargs when values aren't supplied
         """
-        pass
+        t = Template(self.LOAD_MACROS + self.MACRO1_DEFINITION +
+            self.MACRO1_BLOCK_WITH_DEFAULTS)
+        c = Context({})
+        self.assertEqual(t.render(c), self.MACRO1_WITH_DEFAULTS_RENDERED)
 
-    def test_multiple_macros(self):
-        """ test that several macros may be defined
-        and used multiple times in the same template.
+    def test_use_macro_with_one_default(self):
+        """ make sure that the use_macro tag uses one default
+        value for a kwarg when value isn't supplied.
         """
-        pass
+        t = Template(self.LOAD_MACROS + self.MACRO1_DEFINITION +
+            self.USE_MACRO1_WITH_ONE_DEFAULT)
+        c = Context({})
+        self.assertEqual(t.render(c), self.MACRO1_WITH_ONE_DEFAULT_RENDERED)
+
+    def test_macro_block_with_one_default(self):
+        """ make sure that the macro_block tag uses one default
+        value for a kwarg when value isn't supplied.
+        """
+        t = Template(self.LOAD_MACROS + self.MACRO1_DEFINITION +
+            self.MACRO1_BLOCK_WITH_ONE_DEFAULT)
+        c = Context({})
+        self.assertEqual(t.render(c), self.MACRO1_WITH_ONE_DEFAULT_RENDERED)
+
+    def test_use_macro_with_no_defaults(self):
+        """ make sure that the use_macro tag uses no default
+        values for a kwarg when both values are supplied.
+        """
+        t = Template(self.LOAD_MACROS + self.MACRO1_DEFINITION +
+            self.USE_MACRO1_WITH_NO_DEFAULTS)
+        c = Context({})
+        self.assertEqual(t.render(c), self.MACRO1_WITH_NO_DEFAULTS_RENDERED)
+
+    def test_macro_block_with_no_defaults(self):
+        """ make sure that the macro_block tag uses no default
+        values for kwargs when both values are supplied.
+        """
+        t = Template(self.LOAD_MACROS + self.MACRO1_DEFINITION +
+            self.MACRO1_BLOCK_WITH_NO_DEFAULTS)
+        c = Context({})
+        self.assertEqual(t.render(c), self.MACRO1_WITH_NO_DEFAULTS_RENDERED)
+
+    def test_use_macro_with_no_args(self):
+        """ make sure that the use_macro tag fails variables
+        silently when no args are supplied.
+        """
+        t = Template(self.LOAD_MACROS + self.MACRO1_DEFINITION +
+            self.USE_MACRO1_WITH_NO_ARGS)
+        c = Context({})
+        self.assertEqual(t.render(c), self.MACRO1_WITH_NO_ARGS_RENDERED)
+
+    def test_macro_block_with_no_args(self):
+        """ make sure that the macro_block tag fails variables
+        silently when no args are supplied.
+        """
+        t = Template(self.LOAD_MACROS + self.MACRO1_DEFINITION +
+            self.MACRO1_BLOCK_WITH_NO_ARGS)
+        c = Context({})
+        self.assertEqual(t.render(c), self.MACRO1_WITH_NO_ARGS_RENDERED)
+
+    def test_use_macro_with_filter(self):
+        """ make sure that filters work on args and kwargs
+        when using the use_macro syntax.
+        """
+        t = Template(self.LOAD_MACROS + self.MACRO1_DEFINITION +
+            self.USE_MACRO1_WITH_FILTER)
+        c = Context({})
+        self.assertEqual(t.render(c), self.MACRO1_WITH_FILTER_RENDERED)
+
+    def test_lexical_scoping(self):
+        """ make sure that args and kwargs in macros are lexically
+        to just that macro.
+        """
+        c = Context({})
+        # first template test: use_macro with use_macro
+            # test to look for conflicts between scopes,
+            # defaults overriding non-defaults across scope,
+            # and vice versa.
+        t1 = Template(self.LOAD_MACROS + self.MACRO1_DEFINITION +
+            self.MACRO2_DEFINITION + self.USE_MACRO1_WTIH_ONE_DEFAULT +
+            self.USE_MACRO2)
+        self.assertEqual(t1.render(c),
+            self.MACRO1_WITH_ONE_DEFAULT_RENDERED + self.MACRO2_RENDERED)
+        # second template test
+            # test use_macro with macro_block
+        t2 = Template(self.LOAD_MACROS + self.MACRO1_DEFINITION +
+            self.MACRO2_DEFINITION + self.USE_MACRO1_WTIH_ONE_DEFAULT +
+            self.MACRO2_BLOCK)
+        self.assertEqual(t2.render(c),
+            self.MACRO1_WITH_ONE_DEFAULT_RENDERED + self.MACRO2_RENDERED)
+        # third template test
+            # test macro_block with use_macro
+        t3 = Template(self.LOAD_MACROS + self.MACRO1_DEFINITION +
+            self.MACRO2_DEFINITION + self.MACRO1_BLOCK_WTIH_ONE_DEFAULT +
+            self.USE_MACRO2)
+        self.assertEqual(t3.render(c),
+            self.MACRO1_WITH_ONE_DEFAULT_RENDERED + self.MACRO2_RENDERED)
+        # fourth template test
+            # test macro_block with macro_block
+        t4 = Template(self.LOAD_MACROS + self.MACRO1_DEFINITION +
+            self.MACRO2_DEFINITION + self.MACRO1_BLOCK_WTIH_ONE_DEFAULT +
+            self.MACRO2_BLOCK)
+        self.assertEqual(t4.render(c),
+            self.MACRO1_WITH_ONE_DEFAULT_RENDERED + self.MACRO2_RENDERED)
+        # test a different combination of macro useage
+        t5 = Template(self.LOAD_MACROS + self.MACRO2_DEFINITION +
+            self.MACRO1_DEFINITION + self.USE_MACRO1_WITH_NO_ARGS +
+            self.USE_MACRO2)
+        self.assertEqual(t5.render(c),
+            self.MACRO1_WITH_NO_ARGS_RENDERED + self.MACRO2_RENDERED)
 
     def test_use_macro_with_macro_block(self):
         """ test that use_macro and macro_block may
-        be used in the same template, and that they
-        render equivalently.
+        be used in the same template.
         """
-        pass
-
+        t = Template(self.LOAD_MACROS + self.MACRO1_DEFINITION +
+            self.USE_MACRO1_WITH_DEFAULTS + ";" +
+            self.MACRO1_BLOCK_WITH_DEFAULTS)
+        c = Context({})
+        self.assertEqual(t.render(c), self.MACRO1_WITH_DEFAULTS_RENDERED +
+            ";" + self.MACRO1_WITH_DEFAULTS_RENDERED)
 
     # test exceptions
