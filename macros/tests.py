@@ -242,8 +242,8 @@ class MacrosTests(TestCase):
     LOAD_MACROS = "{% load macros %}"
     # load macros test
     TEST_LOADMACROS_TAG = (
-        "{% loadmacros 'macros/test/testmacros.html' %}"
-        "{% use_macro 'foo' 'bar' %}")
+        "{% loadmacros 'macros/tests/testmacros.html' %}"
+        "{% use_macro test_macro 'foo' 'bar' %}")
     # define a macro
     MACRO1_DEFINITION = (
         "{% macro macro1 first_arg second_arg first_kwarg=''"
@@ -291,11 +291,11 @@ class MacrosTests(TestCase):
         "first arg: one; second arg: two; "
         "first_kwarg: value1; second_kwarg: value2;")
     # test using macro with no args
-    USE_MACRO1_NO_ARGS = (
+    USE_MACRO1_WITH_NO_ARGS = (
         "{% use_macro macro1 %}")
-    MACRO1_BLOCK_NO_ARGS = (
+    MACRO1_BLOCK_WITH_NO_ARGS = (
         "{% macro_block macro1 %}{% endmacro_block %}")
-    MACRO1_NO_ARGS_RENDERED = (
+    MACRO1_WITH_NO_ARGS_RENDERED = (
         "first arg: ; second arg: ; "
         "first_kwarg: ; second_kwarg: default;")
     # test using a filter with the use_macro syntax
@@ -321,7 +321,7 @@ class MacrosTests(TestCase):
             "{% macro_arg %}second{% endmacro_arg %}"
             "{% macro_kwarg first_kwarg %}new_one{% endmacro_kwarg %}"
         "{% endmacro_block %}")
-    MACRO_2_RENDERED = (
+    MACRO2_RENDERED = (
         "second macro contents:first,second,new_one,two;")
     
     # test functionality
@@ -390,7 +390,7 @@ class MacrosTests(TestCase):
         rendered_template = nodelist.render(c)
         # check that the macro renders in the new template
         self.assertEqual(rendered_template,
-            "\n\n\n\targ1: foo;\n\targ2: bar;\n\tkwarg1: default;\n")
+            "arg1: foo;arg2: bar;kwarg1: default;")
     
     ## test macro, use_macro, and macro_block
     def test_macro_sets_in_parser(self):
@@ -495,28 +495,28 @@ class MacrosTests(TestCase):
             # defaults overriding non-defaults across scope,
             # and vice versa.
         t1 = Template(self.LOAD_MACROS + self.MACRO1_DEFINITION +
-            self.MACRO2_DEFINITION + self.USE_MACRO1_WTIH_ONE_DEFAULT +
+            self.MACRO2_DEFINITION + self.USE_MACRO1_WITH_ONE_DEFAULT +
             self.USE_MACRO2)
         self.assertEqual(t1.render(c),
             self.MACRO1_WITH_ONE_DEFAULT_RENDERED + self.MACRO2_RENDERED)
         # second template test
             # test use_macro with macro_block
         t2 = Template(self.LOAD_MACROS + self.MACRO1_DEFINITION +
-            self.MACRO2_DEFINITION + self.USE_MACRO1_WTIH_ONE_DEFAULT +
+            self.MACRO2_DEFINITION + self.USE_MACRO1_WITH_ONE_DEFAULT +
             self.MACRO2_BLOCK)
         self.assertEqual(t2.render(c),
             self.MACRO1_WITH_ONE_DEFAULT_RENDERED + self.MACRO2_RENDERED)
         # third template test
             # test macro_block with use_macro
         t3 = Template(self.LOAD_MACROS + self.MACRO1_DEFINITION +
-            self.MACRO2_DEFINITION + self.MACRO1_BLOCK_WTIH_ONE_DEFAULT +
+            self.MACRO2_DEFINITION + self.MACRO1_BLOCK_WITH_ONE_DEFAULT +
             self.USE_MACRO2)
         self.assertEqual(t3.render(c),
             self.MACRO1_WITH_ONE_DEFAULT_RENDERED + self.MACRO2_RENDERED)
         # fourth template test
             # test macro_block with macro_block
         t4 = Template(self.LOAD_MACROS + self.MACRO1_DEFINITION +
-            self.MACRO2_DEFINITION + self.MACRO1_BLOCK_WTIH_ONE_DEFAULT +
+            self.MACRO2_DEFINITION + self.MACRO1_BLOCK_WITH_ONE_DEFAULT +
             self.MACRO2_BLOCK)
         self.assertEqual(t4.render(c),
             self.MACRO1_WITH_ONE_DEFAULT_RENDERED + self.MACRO2_RENDERED)

@@ -225,9 +225,9 @@ def do_macro_block(parser, token):
                 tag_name) + " a macro's name")
     ## need to add some extra validation here.
     try:
-        macro = parser._macros[macro_name]
+        macro = parser._macros[macro]
     except (AttributeError, KeyError):
-        m = "Macro '%s' is not defined" % macro_name
+        m = "Macro '%s' is not defined" % macro
         raise template.TemplateSyntaxError, m
     # get the arg and kwarg nodes from the nodelist
     nodelist = parser.parse(('endmacro_block', ))
