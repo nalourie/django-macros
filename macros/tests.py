@@ -298,12 +298,6 @@ class MacrosTests(TestCase):
     MACRO1_WITH_NO_ARGS_RENDERED = (
         "first arg: ; second arg: ; "
         "first_kwarg: ; second_kwarg: default;")
-    # test using a filter with the use_macro syntax
-    USE_MACRO1_WITH_FILTER = (
-        "{% use_macro macro1 'foobar'|join:'-' %}")
-    MACRO1_WITH_FILTER_RENDERED = (
-        "first arg: f-o-o-b-a-r; second arg: ; "
-        "first_kwarg: ; second_kwarg: default;")
     # Define a second macro (test lexical scoping of args)
     MACRO2_DEFINITION = (
         "{% macro macro2 first_arg second_arg "
@@ -346,13 +340,34 @@ class MacrosTests(TestCase):
     USE_MACRO3_WITH_VARIABLE_KWARG = (
         "{% use_macro macro3 kwarg=foo %}")
     MACRO3_BLOCK_WITH_VARIABLE_INSIDE = (
-        "{% macro_block macro3 %}
+        "{% macro_block macro3 %}"
             "{% macro_kwarg kwarg %}"
                 "{{ foo }}"
             "{% endmacro_kwarg %}"
         "{% endmacro_block %}")
     MACRO3_WITH_VARIABLE_RENDERED = "bar;"
     FOO_VALUE = "bar"
+    # test using a context variable to define a macro default
+    MACRO4_DEFINITION = (
+        "{% macro macro4 kwarg=foo %}"
+            "{{ kwarg }};"
+        "{% endmacro %}")
+    USE_MACRO4_WITH_VALUE = (
+        "{% use_macro macro4 kwarg='value' %}")
+    USE_MACRO4_WITHOUT_VALUE = (
+        "{% use_macro macro4 %}")
+    MACRO4_WITH_VALUE_RENDERED = (
+        "value;")
+    MACRO4_WITHOUT_VALUE_RENDERED = (
+        "bar;")
+    # test defining a macro with no args or kwargs
+    MACRO5_DEFINITION = (
+        "{% macro macro5 %}"
+            "contents"
+        "{% endmacro %}")
+    USE_MACRO5 = "{% use_macro macro5 %}"
+    MACRO5_RENDERED = "contents"
+
     
     # test functionality
 
@@ -595,7 +610,7 @@ class MacrosTests(TestCase):
         """
         t = Template(self.LOAD_MACROS + self.MACRO3_DEFINITION +
             self.USE_MACRO3_WITH_VARIABLE_ARG)
-        c = Context({'foo': FOO_VALUE})
+        c = Context({'foo': self.FOO_VALUE})
         self.assertEqual(t.render(c), self.MACRO3_WITH_VARIABLE_RENDERED)
 
     def test_using_context_variable_in_use_macro_kwarg(self):
@@ -604,7 +619,7 @@ class MacrosTests(TestCase):
         """
         t = Template(self.LOAD_MACROS + self.MACRO3_DEFINITION +
             self.USE_MACRO3_WITH_VARIABLE_KWARG)
-        c = Context({'foo': FOO_VALUE})
+        c = Context({'foo': self.FOO_VALUE})
         self.assertEqual(t.render(c), self.MACRO3_WITH_VARIABLE_RENDERED)
         
     def test_using_context_variable_in_macro_block(self):
@@ -613,17 +628,8 @@ class MacrosTests(TestCase):
         """
         t = Template(self.LOAD_MACROS + self.MACRO3_DEFINITION +
             self.MACRO3_BLOCK_WITH_VARIABLE_INSIDE)
-        c = Context({'foo': FOO_VALUE})
+        c = Context({'foo': self.FOO_VALUE})
         self.assertEqual(t.render(c), self.MACRO3_WITH_VARIABLE_RENDERED)
-    
-    def test_use_macro_with_filter(self):
-        """ make sure that filters work on args and kwargs
-        when using the use_macro syntax.
-        """
-        t = Template(self.LOAD_MACROS + self.MACRO3_DEFINITION +
-            self.USE_MACRO3_WITH_FILTER)
-        c = Context({'foo':'bar'})
-        self.assertEqual(t.render(c), self.MACRO3_WITH_FILTER_RENDERED)
 
     def test_using_context_variable_in_defining_macro(self):
         """ People should be able to use context variables in defining
@@ -631,7 +637,7 @@ class MacrosTests(TestCase):
         """
         t = Template(self.LOAD_MACROS + self.MACRO4_DEFINITION +
             self.USE_MACRO4_WITH_VALUE + self.USE_MACRO4_WITHOUT_VALUE)
-        c = Context({'foo':'bar'})
+        c = Context({'foo': self.FOO_VALUE})
         self.assertEqual(t.render(c), self.MACRO4_WITH_VALUE_RENDERED +
             self.MACRO4_WITHOUT_VALUE_RENDERED)
 

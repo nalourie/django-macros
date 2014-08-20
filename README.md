@@ -72,7 +72,7 @@ All macros, including loaded ones, are local to the template file they are loade
 
 #### Macro:
 
-You can also input template variables into the macros, and use filters on those template variables. You cannot use filters on hard-coded strings though.
+You can also input template variables into the macros, but filters are not supported. That is, you cannot use filters in the arguments.
 
 If the context where `{'foo': 'foobar'}
 
@@ -89,8 +89,6 @@ If the context where `{'foo': 'foobar'}
 {% use_macro test2args1kwarg num_pages "bar" %}
 <br>
 {% use_macro test2args1kwarg %}
-<br>
-{% use_macro test2args1kwarg "new" foo|join:"," baz="diff kwarg" %}
 ```
 
 #### renders as:
@@ -99,7 +97,6 @@ If the context where `{'foo': 'foobar'}
 foo bar KW
 77 bar Default baz
 default arg1 default arg2 Default baz
-new f,o,o,b,a,r diff kwarg
 ```
 
 ### Extended Syntax
