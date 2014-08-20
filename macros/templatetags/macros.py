@@ -10,7 +10,8 @@
 """ Macros.py, part of django-macros, allows for creation of
 macros within django templates.
 """
- 
+
+from re import match as regex_match
 from django import template
 from django.template import FilterExpression
 from django.template.loader import get_template
@@ -22,35 +23,29 @@ def _setup_macros_dict(parser):
     """ initiates the _macros attribute on the parser
     object, allowing for storage of the macros in the parser.
     """
-    ## Metadata of each macro are stored in a new attribute
-    ## of 'parser' class. That way we can access it later
+    ## Each macro is stored in a new attribute
+    ## of the 'parser' class. That way we can access it later
     ## in the template when processing 'use_macro' tags.
     try:
-        ## Only try to access it to eventually trigger an exception
+        # don't overwrite the attribute if it already exists
         parser._macros
     except AttributeError:
         parser._macros = {}
  
  
 class DefineMacroNode(template.Node):
-    """ The template tag node object for the tag
-    which defines a macro.
+    """ The node object for the tag which
+    defines a macro.
     """
-    def __init__(self, name, nodelist, args):
+    def __init__(self, name, nodelist, args, kwargs):
  
         self.name = name
         self.nodelist = nodelist
-        self.args = []
-        self.kwargs = {}
-        for a in args:
-            if "=" not in a:
-                self.args.append(a)
-            else:
-                name, value = a.split("=")
-                self.kwargs[name] = value
+        self.args = args
+        self.kwargs = kwargs
  
     def render(self, context):
-        ## empty string - {% macro %} tag does no output
+        ## empty string - {% macro %} tag has no output
         return ''
  
  
@@ -61,20 +56,56 @@ def do_macro(parser, token):
     """
     try:
         bits = token.split_contents()
-        tag_name, macro_name, args = bits[0], bits[1], bits[2:]
+        tag_name, macro_name, arguments = bits[0], bits[1], bits[2:]
     except IndexError:
         raise template.TemplateSyntaxError(
             "'{0}' tag requires at least one argument (macro name)".format(
             token.contents.split()[0]))
-    # Need to add some validation here
+    
+    # use regex's to parse the arguments into arg
+    # and kwarg definitions
+
+    # the regex for identifying python variable names is:
+    ##  r'^[A-Za-z_][\w_]*$'
+
+    # args must be proper python variable names
+    ## we'll want to capture it from the regex also.
+    arg_regex = r'^([A-Za-z_][\w_]*)$'
+
+    # kwargs must be proper variable names with a
+    # default value, name="value",
+    ## we'll want to capture the name and value from
+    ## the regex as well.
+    kwarg_regex = r'^([A-Za-z_][\w_]*)=(".*"|{0}.*{0})$'.format("'")
+
+    args = []
+    kwargs = {}
+    for argument in arguments:
+        arg_match = regex_match(
+            arg_regex, argument)
+        if arg_match:
+            args.append(arg_match.groups()[0])
+        else:
+            kwarg_match = regex_match(
+                kwarg_regex, argument)
+            if kwarg_match:
+                kwargs[kwarg_match.groups()[0]] = (
+                    # remove the quotes from the value
+                    kwarg_match.groups()[1])
+            else:
+                raise template.TemplateSyntaxError(
+                    "Malformed arguments to the {0} tag.".format(
+                        tag_name))
+    
+    # parse to the endmacro tag and get the contents
     nodelist = parser.parse(('endmacro', ))
     parser.delete_first_token()
  
-    ## Metadata of each macro are stored in a new attribute
-    ## of 'parser' class. That way we can access it later
-    ## in the template when processing 'use_macro' tags.
+    # store macro in parser._macros, creating attribute
+    # if necessary
     _setup_macros_dict(parser)
-    parser._macros[macro_name] = DefineMacroNode(macro_name, nodelist, args)
+    parser._macros[macro_name] = DefineMacroNode(
+        macro_name, nodelist, args, kwargs)
     return parser._macros[macro_name]
  
  
@@ -90,7 +121,8 @@ class LoadMacrosNode(template.Node):
 @register.tag(name="loadmacros")
 def do_loadmacros(parser, token):
     """ The function taking a parsed tag and returning
-    a LoadMacrosNode object.
+    a LoadMacrosNode object, while also loading the macros
+    into the page.
     """
     try:
         tag_name, filename = token.split_contents()
@@ -102,13 +134,12 @@ def do_loadmacros(parser, token):
         filename = filename[1:-1]
     else:
         raise template.TemplateSyntaxError(
-            "Malformed arguments to the {0} template tag.".format(tag_name) +
+            "Malformed argument to the {0} template tag.".format(tag_name) +
             " Argument must be in quotes.")
     t = get_template(filename)
     macros = t.nodelist.get_nodes_by_type(DefineMacroNode)
-    ## Metadata of each macro are stored in a new attribute
-    ## of 'parser' class. That way we can access it later
-    ## in the template when processing 'use_macro' tags.
+    # make sure the _macros attribute dictionary is instantiated
+    # on the parser, then add the macros to it.
     _setup_macros_dict(parser)
     for macro in macros:
         parser._macros[macro.name] = macro

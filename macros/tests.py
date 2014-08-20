@@ -323,6 +323,15 @@ class MacrosTests(TestCase):
         "{% endmacro_block %}")
     MACRO2_RENDERED = (
         "second macro contents:first,second,new_one,two;")
+    # test argument parsing with equals signs in them
+    USE_MACRO2_WITH_ARG_EQUALS_SIGN = (
+        "{% use_macro macro2 'a=b' %}")
+    MACRO2_WITH_ARG_EQUALS_SIGN_RENDERED = (
+        "second macro contents:a=b,,one,two;")
+    USE_MACRO2_WITH_KWARG_EQUALS_SIGN = (
+        '{% use_macro macro2 first_kwarg="a=b" %}')
+    MACRO2_WITH_KWARG_EQUALS_SIGN_RENDERED = (
+        'second macro contents:,,a=b,two;')
     
     # test functionality
 
@@ -538,4 +547,47 @@ class MacrosTests(TestCase):
         self.assertEqual(t.render(c), self.MACRO1_WITH_DEFAULTS_RENDERED +
             ";" + self.MACRO1_WITH_DEFAULTS_RENDERED)
 
+    def test_arg_with_equals_sign(self):
+        """ test that when an arg has an equals sign surrounded
+        by quotes, the arg still parses correctly.
+        """
+        t = Template(self.LOAD_MACROS + self.MACRO2_DEFINITION +
+            self.USE_MACRO2_WITH_ARG_EQUALS_SIGN)
+        c = Context({})
+        self.assertEqual(t.render(c),
+            self.MACRO2_WITH_ARG_EQUALS_SIGN_RENDERED)
+
+    def test_kwarg_with_equals_sign(self):
+        """ test that when a kwarg is set to a value with an equals
+        sign in it, that the kwarg still parses correctly.
+        """
+        t = Template(self.LOAD_MACROS + self.MACRO2_DEFINITION +
+            self.USE_MACRO2_WITH_KWARG_EQUALS_SIGN)
+        c = Context({})
+        self.assertEqual(t.render(c),
+            self.MACRO2_WITH_KWARG_EQUALS_SIGN_RENDERED)
+
+    def test_using_context_variable_in_use_macro(self):
+        """ Use macro is meant to be able to accept context variables
+        in its arguments.
+        """
+        pass
+
+    def test_using_context_variable_in_macro_block(self):
+        """ Macro block is meant to be able to accept context variables
+        inside it's sub blocks.
+        """
+        pass
+
+    def test_using_context_variable_in_defining_macro(self):
+        """ People should be able to use context variables in defining
+        default values for templates.
+        """
+        pass
+
+    def test_defining_macro_with_no_args(self):
+        """ Macros should be useable with no arguments, and just a macro
+        name.
+        """
+    
     # test exceptions
