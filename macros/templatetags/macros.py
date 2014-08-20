@@ -292,10 +292,46 @@ def do_macro_block(parser, token):
     nodelist = parser.parse(('endmacro_block', ))
     parser.delete_first_token()
 
-    # generate args and kwargs from nodelist
-    args = nodelist.get_nodes_by_type(MacroArgNode)
-    kwargs = dict((x.keyword, x) for x in
-        nodelist.get_nodes_by_type(MacroKwargNode))
+    args = []
+    kwargs = {}
+    # Loop through nodes, sorting into args/kwargs
+    ## (we could do this more semantically, but we loop
+    ## only once like this as an optimization).
+    for node in nodelist:
+        if isinstance(node, MacroArgNode):
+            args.append(node)
+        elif isinstance(node, MacroKwargNode):
+            if node.keyword in macro.kwargs:
+                # check that the keyword is defined as an argument for
+                # the macro.
+                if not node.keyword in kwargs:
+                    # add the keyword argument to the dict
+                    # if it's not in there
+                    kwargs[node.keyword] = node
+                else:
+                    # raise a template syntax error if the
+                    # keyword is already in the dict (thus a keyword
+                    # argument was passed twice.
+                    raise template.TemplateSyntaxError(
+                        "{0} template tag was supplied repeated ".format(tag_name) +
+                        "the same keyword argument multiple times.")
+            else:
+                raise template.TemplateSyntaxError(
+                    "{0} template tag was supplied with a ".format(tag_name) +
+                    "keyword argument not defined by the {0} macro.".format(macro_name))
+        else:
+            raise template.TemplateSyntaxError(
+                "{0} template tag received an argument that ".format(tag_name)
+                "is neither a arg or a kwarg tag. Make sure there's "
+                "text or template tags directly descending from the {0} tag.".format(tag_name))
+
+    # check that there aren't more arg tags than args
+    # in the macro.
+    if len(args) > len(macro.args):
+        raise template.TemplateSyntaxError(
+            "{0} template tag was supplied too many ".format(tag_name) +
+            "argument block tags.")
+        
     macro.parser = parser
     return MacroBlockNode(macro, nodelist, args, kwargs)
 

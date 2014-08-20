@@ -1,6 +1,4 @@
 To Do:
-    
-    1.) add validation on the number or args passed into macro_block via extended syntax, the name of the arguments, not repeating named arguments, and not having text outside of block tags.
     2.) write tests for exceptions in macros.py
     3.) check out if we can take advantage of django's built in inclusion tags/include tag to make the code more elegant/robust.
     4.) inspect all source code one last time.
