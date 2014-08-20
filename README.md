@@ -72,6 +72,10 @@ All macros, including loaded ones, are local to the template file they are loade
 
 #### Macro:
 
+You can also input template variables into the macros, and use filters on those template variables. You cannot use filters on hard-coded strings though.
+
+If the context where `{'foo': 'foobar'}
+
 ```
 {% macro test2args1kwarg arg1 arg2 baz="Default baz" %}
     {% firstof arg1 "default arg1" %}
@@ -79,14 +83,14 @@ All macros, including loaded ones, are local to the template file they are loade
     {{ baz }}
 {% endmacro %}
             
-         
+
 {% use_macro test2args1kwarg "foo" "bar" baz="KW" %}
 <br>
 {% use_macro test2args1kwarg num_pages "bar" %}
 <br>
 {% use_macro test2args1kwarg %}
 <br>
-{% use_macro test2args1kwarg "new" "foobar"|join:"," baz="diff kwarg" %}
+{% use_macro test2args1kwarg "new" foo|join:"," baz="diff kwarg" %}
 ```
 
 #### renders as:

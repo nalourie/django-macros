@@ -38,7 +38,8 @@ class DefineMacroNode(template.Node):
     defines a macro.
     """
     def __init__(self, name, nodelist, args, kwargs):
- 
+        # the values in the kwargs dictionary are by
+        # assumption instances of template.Variable.
         self.name = name
         self.nodelist = nodelist
         self.args = args
@@ -73,10 +74,13 @@ def do_macro(parser, token):
     arg_regex = r'^([A-Za-z_][\w_]*)$'
 
     # kwargs must be proper variable names with a
-    # default value, name="value",
+    # default value, name="value", or name=value if
+    # value is a template variable (potentially with
+    # filters).
     ## we'll want to capture the name and value from
     ## the regex as well.
-    kwarg_regex = r'^([A-Za-z_][\w_]*)=(".*"|{0}.*{0})$'.format("'")
+    kwarg_regex = r'^([A-Za-z_][\w_]*)=(.+)$'
+    # leave further validation to the template variable class
 
     args = []
     kwargs = {}
@@ -89,8 +93,8 @@ def do_macro(parser, token):
             kwarg_match = regex_match(
                 kwarg_regex, argument)
             if kwarg_match:
-                kwargs[kwarg_match.groups()[0]] = (
-                    # remove the quotes from the value
+                kwargs[kwarg_match.groups()[0]] = template.Variable(
+                    # convert to a template variable here
                     kwarg_match.groups()[1])
             else:
                 raise template.TemplateSyntaxError(
@@ -151,28 +155,31 @@ class UseMacroNode(template.Node):
     uses a macro.
     """
  
-    def __init__(self, macro, fe_args, fe_kwargs):
+    def __init__(self, macro, args, kwargs):
+        # all the values kwargs and the items in args
+        # are by assumption template.Variable instances.
         self.macro = macro
-        self.fe_args = fe_args
-        self.fe_kwargs = fe_kwargs
+        self.args = args
+        self.kwargs = kwargs
  
     def render(self, context):
- 
+
+        # add all of the use_macros args into context
         for i, arg in enumerate(self.macro.args):
             try:
-                fe = self.fe_args[i]
-                context[arg] = fe.resolve(context)
+                template_variable = self.args[i]
+                context[arg] = template_variable.resolve(context)
             except IndexError:
                 context[arg] = ""
- 
+
+        # add all of use_macros kwargs into context
         for name, default in self.macro.kwargs.iteritems():
-            if name in self.fe_kwargs:
-                context[name] = self.fe_kwargs[name].resolve(context)
+            if name in self.kwargs:
+                context[name] = self.kwargs[name].resolve(context)
             else:
-                context[name] = FilterExpression(default,
-                                                 self.macro.parser
-                ).resolve(context)
- 
+                context[name] = default.resolve(context)
+
+        # return the nodelist rendered in the adjusted context
         return self.macro.nodelist.render(context)
  
  
@@ -192,22 +199,36 @@ def do_usemacro(parser, token):
         macro = parser._macros[macro_name]
     except (AttributeError, KeyError):
         raise template.TemplateSyntaxError(
-            "Macro '{0}' is not defined".format(macro_name))
- 
-    fe_kwargs = {}
-    fe_args = []
- 
-    for val in values:
-        if "=" in val:
-            # kwarg
-            name, value = val.split("=")
-            fe_kwargs[name] = FilterExpression(value, parser)
-        else:  # arg
-            # no validation, go for it ...
-            fe_args.append(FilterExpression(val, parser))
- 
+            "Macro '{0}' is not defined previously to the {1} tag".format(macro_name, tag_name))
+
+    args = []
+    kwargs = {}
+
+    # leaving most validation up to the template.Variable
+    # class, but use regex here so that validation could
+    # be added in future if necessary.
+    kwarg_regex = r'^([A-Za-z_][\w_]*)=(.+)$'
+    arg_regex = r'^(.+)$'
+    for value in values:
+        # must check against the kwarg regex first
+        # because the arg regex matches everything!
+        kwarg_match = regex_match(
+            kwarg_regex, value)
+        if kwarg_match:
+            kwargs[kwarg_match.groups()[0]] = template.Variable(
+                # convert to a template variable here
+                kwarg_match.groups()[1])
+        else:
+            arg_match = regex_match(
+                arg_regex, value)
+            if arg_match:
+                args.append(template.Variable(arg_match.groups()[0]))
+            else:
+                raise template.TemplateSyntaxError(
+                    "Malformed arguments to the {0} tag.".format(
+                        tag_name))
     macro.parser = parser
-    return UseMacroNode(macro, fe_args, fe_kwargs)
+    return UseMacroNode(macro, args, kwargs)
 
 
 class MacroBlockNode(template.Node):
@@ -215,6 +236,9 @@ class MacroBlockNode(template.Node):
     syntax macro useage.
     """
     def __init__(self, macro, nodelist, args, kwargs):
+        # items in the args list and values in the kwargs
+        # dict are assumed to be MacroArgNodes and
+        # MacroKwargNodes respectively.
         self.macro = macro
         self.nodelist = nodelist
         self.args = args
@@ -237,8 +261,9 @@ class MacroBlockNode(template.Node):
                 # add the rendered contents of the tag to the context
                 context[name] = self.kwargs[name].nodelist.render(context)
             except KeyError:
-                context[name] = FilterExpression(default,
-                    self.macro.parser).resolve(context)
+                # default value is a template variable that needs to be
+                # resolved in the context.
+                context[name] = default.resolve(context)
 
         return self.macro.nodelist.render(context)
 
@@ -249,20 +274,25 @@ def do_macro_block(parser, token):
     to a MacroBlockNode.
     """
     try:
-        tag_name, macro = token.split_contents()
+        tag_name, macro_name = token.split_contents()
     except ValueError:
         raise template.TemplateSyntaxError(
             "{0} tag requires exactly one argument,".format(
                 tag_name) + " a macro's name")
-    ## need to add some extra validation here.
+    # could add extra validation on the macro_name tag
+    # here, but probably don't need to since we're checking
+    # if there's a macro by that name anyway.
     try:
-        macro = parser._macros[macro]
+        # see if the macro is in the context.
+        macro = parser._macros[macro_name]
     except (AttributeError, KeyError):
         raise template.TemplateSyntaxError(
             "Macro '{0}' is not defined".format(macro))
     # get the arg and kwarg nodes from the nodelist
     nodelist = parser.parse(('endmacro_block', ))
     parser.delete_first_token()
+
+    # generate args and kwargs from nodelist
     args = nodelist.get_nodes_by_type(MacroArgNode)
     kwargs = dict((x.keyword, x) for x in
         nodelist.get_nodes_by_type(MacroKwargNode))
@@ -323,6 +353,7 @@ def do_macro_kwarg(parser, token):
         raise template.TemplateSyntaxError(
             "{0} tag requires exactly one argument, a keyword".format(
             token.contents.split()[0]))
+    
     # add some validation of the keyword argument here.
     nodelist = parser.parse(('endmacro_kwarg', ))
     parser.delete_first_token()

@@ -332,6 +332,27 @@ class MacrosTests(TestCase):
         '{% use_macro macro2 first_kwarg="a=b" %}')
     MACRO2_WITH_KWARG_EQUALS_SIGN_RENDERED = (
         'second macro contents:,,a=b,two;')
+    # test defining a macro with an equals sign in a default argument.
+    MACRO3_DEFINITION = (
+        "{% macro macro3 arg kwarg='a=b' %}"
+            "{{ arg }}{{ kwarg }};"
+        "{% endmacro %}")
+    USE_MACRO3 = (
+        "{% use_macro macro3 %}")
+    MACRO3_RENDERED = "a=b;"
+    # test using context variable with macros
+    USE_MACRO3_WITH_VARIABLE_ARG = (
+        "{% use_macro macro3 foo kwarg='' %}")
+    USE_MACRO3_WITH_VARIABLE_KWARG = (
+        "{% use_macro macro3 kwarg=foo %}")
+    MACRO3_BLOCK_WITH_VARIABLE_INSIDE = (
+        "{% macro_block macro3 %}
+            "{% macro_kwarg kwarg %}"
+                "{{ foo }}"
+            "{% endmacro_kwarg %}"
+        "{% endmacro_block %}")
+    MACRO3_WITH_VARIABLE_RENDERED = "bar;"
+    FOO_VALUE = "bar"
     
     # test functionality
 
@@ -485,15 +506,6 @@ class MacrosTests(TestCase):
         c = Context({})
         self.assertEqual(t.render(c), self.MACRO1_WITH_NO_ARGS_RENDERED)
 
-    def test_use_macro_with_filter(self):
-        """ make sure that filters work on args and kwargs
-        when using the use_macro syntax.
-        """
-        t = Template(self.LOAD_MACROS + self.MACRO1_DEFINITION +
-            self.USE_MACRO1_WITH_FILTER)
-        c = Context({})
-        self.assertEqual(t.render(c), self.MACRO1_WITH_FILTER_RENDERED)
-
     def test_lexical_scoping(self):
         """ make sure that args and kwargs in macros are lexically
         to just that macro.
@@ -547,6 +559,16 @@ class MacrosTests(TestCase):
         self.assertEqual(t.render(c), self.MACRO1_WITH_DEFAULTS_RENDERED +
             ";" + self.MACRO1_WITH_DEFAULTS_RENDERED)
 
+    def test_define_macro_with_equals_sign(self):
+        """ test that when a kwarg's default value has an equals
+        sign, it won't throw a bug.
+        """
+        t = Template(self.LOAD_MACROS + self.MACRO3_DEFINITION +
+            self.USE_MACRO3)
+        c = Context({})
+        self.assertEqual(t.render(c),
+            self.MACRO3_RENDERED)
+
     def test_arg_with_equals_sign(self):
         """ test that when an arg has an equals sign surrounded
         by quotes, the arg still parses correctly.
@@ -567,27 +589,59 @@ class MacrosTests(TestCase):
         self.assertEqual(t.render(c),
             self.MACRO2_WITH_KWARG_EQUALS_SIGN_RENDERED)
 
-    def test_using_context_variable_in_use_macro(self):
+    def test_using_context_variable_in_use_macro_arg(self):
         """ Use macro is meant to be able to accept context variables
-        in its arguments.
+        in its args.
         """
-        pass
+        t = Template(self.LOAD_MACROS + self.MACRO3_DEFINITION +
+            self.USE_MACRO3_WITH_VARIABLE_ARG)
+        c = Context({'foo': FOO_VALUE})
+        self.assertEqual(t.render(c), self.MACRO3_WITH_VARIABLE_RENDERED)
 
+    def test_using_context_variable_in_use_macro_kwarg(self):
+        """ Use macro is meant to be able to accept context variables
+        in its kwargs.
+        """
+        t = Template(self.LOAD_MACROS + self.MACRO3_DEFINITION +
+            self.USE_MACRO3_WITH_VARIABLE_KWARG)
+        c = Context({'foo': FOO_VALUE})
+        self.assertEqual(t.render(c), self.MACRO3_WITH_VARIABLE_RENDERED)
+        
     def test_using_context_variable_in_macro_block(self):
         """ Macro block is meant to be able to accept context variables
         inside it's sub blocks.
         """
-        pass
+        t = Template(self.LOAD_MACROS + self.MACRO3_DEFINITION +
+            self.MACRO3_BLOCK_WITH_VARIABLE_INSIDE)
+        c = Context({'foo': FOO_VALUE})
+        self.assertEqual(t.render(c), self.MACRO3_WITH_VARIABLE_RENDERED)
+    
+    def test_use_macro_with_filter(self):
+        """ make sure that filters work on args and kwargs
+        when using the use_macro syntax.
+        """
+        t = Template(self.LOAD_MACROS + self.MACRO3_DEFINITION +
+            self.USE_MACRO3_WITH_FILTER)
+        c = Context({'foo':'bar'})
+        self.assertEqual(t.render(c), self.MACRO3_WITH_FILTER_RENDERED)
 
     def test_using_context_variable_in_defining_macro(self):
         """ People should be able to use context variables in defining
         default values for templates.
         """
-        pass
+        t = Template(self.LOAD_MACROS + self.MACRO4_DEFINITION +
+            self.USE_MACRO4_WITH_VALUE + self.USE_MACRO4_WITHOUT_VALUE)
+        c = Context({'foo':'bar'})
+        self.assertEqual(t.render(c), self.MACRO4_WITH_VALUE_RENDERED +
+            self.MACRO4_WITHOUT_VALUE_RENDERED)
 
     def test_defining_macro_with_no_args(self):
         """ Macros should be useable with no arguments, and just a macro
         name.
         """
+        t = Template(self.LOAD_MACROS + self.MACRO5_DEFINITION +
+            self.USE_MACRO5)
+        c = Context({})
+        self.assertEqual(t.render(c), self.MACRO5_RENDERED)
     
     # test exceptions
