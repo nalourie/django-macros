@@ -1,13 +1,9 @@
 To Do:
-    0.) remove the ability to use filters on hardcoded strings, only allow useage of filters on variables. Why would you need a filter on a hardcoded string anyway?
-        - change the tests for filters, make them come after tests for template variables
-        - make the validation regexes anticipate filters
-        - make the proper things template variables instead of fe's.
-    1.) get/validate args using regexes (see paragraph at bottom)
-    2.) add validation on the number or args passed into macro_block via extended syntax, the name of the arguments, not repeating named arguments, and not having text outside of block tags.
-    3.) add more validation to args in general
-    4.) write tests for exceptions in macros.py
-    5.) check out if we can take advantage of django's built in inclusion tags/include tag to make the code more elegant/robust.
-    6.) package it up with distutils and upload the package to pip.
     
-    could think about adding more in-depth regex validation on kwarg_regex, which doesn't currently check at all the section it passes to create a template variable.
+    1.) add validation on the number or args passed into macro_block via extended syntax, the name of the arguments, not repeating named arguments, and not having text outside of block tags.
+    2.) write tests for exceptions in macros.py
+    3.) check out if we can take advantage of django's built in inclusion tags/include tag to make the code more elegant/robust.
+    4.) inspect all source code one last time.
+    5.) package it up with distutils and upload the package to pip.
+
+* things to consider: adding support for filters.
