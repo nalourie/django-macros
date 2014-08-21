@@ -13,3 +13,6 @@ macros/models.py
 macros/tests.py
 macros/views.py
 macros/templates/macros/tests/testmacros.html
+macros/templatetags/__init__.py
+macros/templatetags/macros.py
+macros/templatetags/repeatedblocks.py

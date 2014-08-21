@@ -7,8 +7,8 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setup(
     name='django-macros',
-    version='0.1',
-    packages=['macros'],
+    version='0.2',
+    packages=['macros', 'macros.templatetags'],
     include_package_data=True,
     install_requires='django >= 1.6',
     license='MIT License',
