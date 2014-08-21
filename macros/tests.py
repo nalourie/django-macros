@@ -367,7 +367,8 @@ class MacrosTests(TestCase):
         "{% endmacro %}")
     USE_MACRO5 = "{% use_macro macro5 %}"
     MACRO5_RENDERED = "contents"
-
+    # exceptions testing templates are kept in the definition
+    # of the exceptions tests.
     
     # test functionality
 
@@ -641,6 +642,22 @@ class MacrosTests(TestCase):
         self.assertEqual(t.render(c), self.MACRO4_WITH_VALUE_RENDERED +
             self.MACRO4_WITHOUT_VALUE_RENDERED)
 
+    def test_default_template_variables_set_at_definition(self):
+        """ when a macro tag uses a template variable to
+        set a default value for a kwarg, the default value
+        should be what the context variable was at the definition
+        of the macro, and so should not change later if the variable
+        does.
+        """
+        t = Template(self.LOAD_MACROS + self.MACRO4_DEFINITION +
+            "{% with 'new value' as foo %}" +
+                self.USE_MACRO4_WITHOUT_VALUE +
+            "{% endwith %}")
+        c = Context({'foo': self.FOO_VALUE})
+        # default value should still be 'bar' or self.FOO_VALUE as
+        # the variable was at the macro's definition.
+        self.assertEqual(t.render(c), self.MACRO4_WITHOUT_VALUE_RENDERED)
+
     def test_defining_macro_with_no_args(self):
         """ Macros should be useable with no arguments, and just a macro
         name.
@@ -651,3 +668,365 @@ class MacrosTests(TestCase):
         self.assertEqual(t.render(c), self.MACRO5_RENDERED)
     
     # test exceptions
+
+    def test_macro_with_no_end_tag(self):
+        """ when the macro tag doesn't have an end tag,
+        it should raise an exception.
+        """
+        self.assertRaisesRegexp(
+            template.TemplateSyntaxError,
+            r"^Unclosed tag .+\. Looking for one of: .+$",
+            Template,
+            self.LOAD_MACROS + "{% macro macro_name %}some text")
+
+    def test_macro_with_no_macro_name_exception(self):
+        """ A macro tag without a macro name should raise
+        a too few arguments exception.
+        """
+        self.assertRaisesRegexp(
+            template.TemplateSyntaxError,
+            r"^.+ tag requires at least one argument \(macro name\)$",
+            Template,
+            self.LOAD_MACROS + "{% macro %}{% endmacro %}")
+
+    def test_macro_raises_malformed_argument_exception_for_arg(self):
+        """ A macro tag should raise an exception if an arg
+        is malformed.
+        """
+        # quotes around the arg definition
+        self.assertRaisesRegexp(
+            template.TemplateSyntaxError,
+            r"^Malformed arguments to the .+ tag.$",
+            Template,
+            self.LOAD_MACROS + "{% macro macro_name 'arg' %}"
+            "{% endmacro %}")
+
+        # end quote on the arg definition
+        self.assertRaisesRegexp(
+            template.TemplateSyntaxError,
+            r"^Malformed arguments to the .+ tag.$",
+            Template,
+            self.LOAD_MACROS + "{% macro macro_name arg' %}"
+            "{% endmacro %}")
+
+    def test_macro_raises_malformed_argument_exception_for_kwarg(self):
+        """ A macro tag should raise an exception if a kwarg
+        is malformed.
+        """
+        # default value not entirely in quotes
+        self.assertRaisesRegexp(
+            template.TemplateSyntaxError,
+            r"^Malformed arguments to the .+ tag.$",
+            Template,
+            self.LOAD_MACROS + "{% macro macro_name kw=a'arg' %}"
+            "{% endmacro %}")
+
+        # keyword in quotes
+        self.assertRaisesRegexp(
+            template.TemplateSyntaxError,
+            r"^Malformed arguments to the .+ tag.$",
+            Template,
+            self.LOAD_MACROS + "{% macro macro_name 'kw'=aarg %}"
+            "{% endmacro %}")
+
+    def test_macro_raises_variable_missing_exception(self):
+        """ if a macro tag is called with a default set to
+        a variable that is not in the context, it should
+        raise a VariableDoesNotExist error.
+        """
+        # argument only throws error when the template is
+        # actually rendered, because that is when variables
+        # are resolved into contexts.
+        t = Template(self.LOAD_MACROS +
+            "{% macro some_macro kwarg=foo %}text{% endmacro %}")
+        self.assertRaises(
+            template.VariableDoesNotExist,
+            t.render,
+            Context({}))
+
+    def test_macro_raises_malformed_argument_exception_for_filter(self):
+        """ If the user attempts to use a filter on an argument,
+        the macro tag should raise a malformed arguments exception.
+        """
+        # use filter on template variable
+        self.assertRaisesRegexp(
+            template.TemplateSyntaxError,
+            r"^Malformed arguments to the .+ tag.$",
+            Template,
+            self.LOAD_MACROS + "{% macro macro_name kwarg=arg|join:\",\" %}"
+            "{% endmacro %}")
+
+        # use filter on hard-coded string
+        self.assertRaisesRegexp(
+            template.TemplateSyntaxError,
+            r"^Malformed arguments to the .+ tag.$",
+            Template,
+            self.LOAD_MACROS + "{% macro macro_name kwarg='arg'|join:\",\" %}"
+            "{% endmacro %}")
+
+    def test_load_macros_raises_no_arguments_exception(self):
+        """ If the loadmacros tag is called without a filename,
+        it should raise a template syntax error.
+        """
+        self.assertRaisesRegexp(
+            template.TemplateSyntaxError,
+            r"^.+ tag requires exactly one argument \(filename\)$",
+            Template,
+            self.LOAD_MACROS + "{% loadmacros %}")
+
+    def test_load_macros_raises_for_too_many_arguments(self):
+        """ If the loadmacros tag is called with two or more
+        arguments, it should raise an error.
+        """
+        self.assertRaisesRegexp(
+            template.TemplateSyntaxError,
+            r"^.+ tag requires exactly one argument \(filename\)$",
+            Template,
+            self.LOAD_MACROS +
+                "{% loadmacros 'macros/tests/testmacros.html' "
+                "'macros/tests/testmacros.html' %}")
+
+    def test_load_macros_malformed_arguments_exception(self):
+        """ if the loadmacros tag's filename argument is not
+        wrapped in quotes, then the tag should raise a
+        template syntax error.
+        """
+        # malformed argument: no quotes
+        self.assertRaisesRegexp(
+            template.TemplateSyntaxError,
+            r"^Malformed argument to the .+ template tag. "
+                 "Argument must be in quotes.$",
+            Template,
+            self.LOAD_MACROS +
+                "{% loadmacros macros/tests/testmacros.html %}")
+        # malformed argument: mismatched quotes ("')
+        self.assertRaisesRegexp(
+            template.TemplateSyntaxError,
+            r"^Malformed argument to the .+ template tag. "
+                 "Argument must be in quotes.$",
+            Template,
+            self.LOAD_MACROS +
+                "{% loadmacros \"macros/tests/testmacros.html' %}")
+        # malformed argument: mismatched quotes ('")
+        self.assertRaisesRegexp(
+            template.TemplateSyntaxError,
+            r"^Malformed argument to the .+ template tag. "
+                 "Argument must be in quotes.$",
+            Template,
+            self.LOAD_MACROS +
+                "{% loadmacros 'macros/tests/testmacros.html\" %}")
+        # malformed argument: only one quote
+        self.assertRaisesRegexp(
+            template.TemplateSyntaxError,
+            r"^Malformed argument to the .+ template tag. "
+                 "Argument must be in quotes.$",
+            Template,
+            self.LOAD_MACROS +
+                "{% loadmacros 'macros/tests/testmacros.html %}")
+        
+    def test_use_macro_with_no_macro_name(self):
+        """ if use_macro is called without any arguments, it
+        raises an exception.
+        """
+        self.assertRaisesRegexp(
+            template.TemplateSyntaxError,
+            r"^.+ tag requires at least one argument \(macro name\)$",
+            Template,
+            self.LOAD_MACROS + "{% use_macro %}")
+
+    def test_use_macro_without_macro_definition(self):
+        """ if use_macro is called without a macro definition
+        or with the macro definition after use_macro, then it
+        should raise an exception.
+        """
+        self.assertRaisesRegexp(
+            template.TemplateSyntaxError,
+            r"^Macro .+ is not defined previously to the .+ tag$",
+            Template,
+            self.LOAD_MACROS + "{% use_macro macro_name %}")
+
+    def test_use_macro_before_macro_definition(self):
+        """ if use_macro comes before the definition of the macro
+        it uses, then it should throw an exception.
+        """
+        self.assertRaisesRegexp(
+            template.TemplateSyntaxError,
+            r"^Macro .+ is not defined previously to the .+ tag$",
+            Template,
+            self.LOAD_MACROS + self.USE_MACRO2 +
+                self.MACRO2_DEFINITION)
+
+    def test_use_macro_with_malformed_arguments(self):
+        """ if use_macro is passed malformed arguments, it should
+        raise an exception.
+        """
+        # malformed arg
+        self.assertRaisesRegexp(
+            template.TemplateSyntaxError,
+            r"^Malformed arguments to the .+ tag.$",
+            Template,
+            self.LOAD_MACROS + self.MACRO3_DEFINITION +
+                "{% use_macro macro3 'foo'o %}")
+        
+        # malformed kwarg
+        self.assertRaisesRegexp(
+            template.TemplateSyntaxError,
+            r"^Malformed arguments to the .+ tag.$",
+            Template,
+            self.LOAD_MACROS + self.MACRO3_DEFINITION +
+                "{% use_macro macro3 kwar'g'='a=b' %}")
+
+    def test_macro_block_with_no_macro_name(self):
+        """ if macro_block is called without a macro_name, it should
+        raise an exception.
+        """
+        self.assertRaisesRegexp(
+            template.TemplateSyntaxError,
+            r".+ tag requires exactly one argument, a macro's name",
+            Template,
+            self.LOAD_MACROS + self.MACRO3_DEFINITION +
+                "{% macro_block %}{% endmacro_block %}")
+
+    def test_macro_block_before_macro_definition(self):
+        """ if macro_block is called before a macro's definition,
+        it should raise an exception.
+        """
+        self.assertRaisesRegexp(
+            template.TemplateSyntaxError,
+            r"^Macro .+ is not defined previously to the .+ tag$",
+            Template,
+            self.LOAD_MACROS + "{% macro_block macro3 %}{% endmacro_block %}"
+            + self.MACRO3_DEFINITION)
+
+    def test_macro_block_with_no_macro_definition(self):
+        """ if macro_block is called on a macro that hasn't
+        been defined, then it should raise an exception.
+        """
+        self.assertRaisesRegexp(
+            template.TemplateSyntaxError,
+            r"^Macro .+ is not defined previously to the .+ tag$",
+            Template,
+            self.LOAD_MACROS + "{% macro_block macro3 %}{% endmacro_block %}")
+
+    def test_macro_block_with_repeated_keyword(self):
+        """ if the macro_block is passed the same keyword
+        argument twice, it should raise an exception.
+        """
+        self.assertRaisesRegexp(
+            template.TemplateSyntaxError,
+            r"^.+ template tag was supplied "
+            r"the same keyword argument multiple times.$",
+            Template,
+            self.LOAD_MACROS + self.MACRO3_DEFINITION +
+            "{% macro_block macro3 %}"
+                "{% macro_kwarg kwarg %}"
+                    "contents"
+                "{% endmacro_kwarg %}"
+                "{% macro_kwarg kwarg %}"
+                    "values"
+                "{% endmacro_kwarg %}"
+            "{% endmacro_block %}")
+
+    def test_macro_block_with_undefined_keyword(self):
+        """ if macro_block is called with a keyword
+        argument not defined in its macro, it should raise
+        an exception.
+        """
+        self.assertRaisesRegexp(
+            template.TemplateSyntaxError,
+            r"^.+ template tag was supplied with a "
+            r"keyword argument not defined by the .+ macro.$",
+            Template,
+            self.LOAD_MACROS + self.MACRO3_DEFINITION +
+            "{% macro_block macro3 %}"
+                "{% macro_kwarg foo %}"
+                    "contents"
+                "{% endmacro_kwarg %}"
+            "{% endmacro_block %}")
+
+    def test_macro_block_with_text(self):
+        """ if macro_block is called with text inside it
+        not wrapped in an arg or kwarg tag, it should raise
+        an exception.
+        """
+        self.assertRaisesRegexp(
+            template.TemplateSyntaxError,
+            r"^.+ template tag received an argument that "
+            r"is neither a arg or a kwarg tag. Make sure there's "
+            r"text or template tags directly descending from the .+ tag.$",
+            Template,
+            self.LOAD_MACROS + self.MACRO3_DEFINITION +
+            "{% macro_block macro3 %}"
+                "some text outside a tag"
+                "{% macro_kwarg kwarg %}"
+                    "contents"
+                "{% endmacro_kwarg %}"
+            "{% endmacro_block %}")
+
+    def test_macro_block_with_bad_node(self):
+        """ if macro_block is called with a template tag as
+        a direct descendent of it that is not an arg or
+        kwarg tag, it should raise an exception.
+        """
+        self.assertRaisesRegexp(
+            template.TemplateSyntaxError,
+            r"^.+ template tag received an argument that "
+            r"is neither a arg or a kwarg tag. Make sure there's "
+            r"text or template tags directly descending from the .+ tag.$",
+            Template,
+            self.LOAD_MACROS + self.MACRO3_DEFINITION +
+            "{% macro_block macro3 %}"
+                "{% if True %}{% endif %}"
+                "{% macro_kwarg kwarg %}"
+                    "contents"
+                "{% endmacro_kwarg %}"
+            "{% endmacro_block %}")
+
+    def test_macro_block_with_too_many_args(self):
+        """ if macro_block is called with more args than
+        defined in its macro, it should raise an exception.
+        """
+        self.assertRaisesRegexp(
+            template.TemplateSyntaxError,
+            r"^.+ template tag was supplied too many "
+            r"arg block tags.$",
+            Template,
+            self.LOAD_MACROS + self.MACRO3_DEFINITION +
+            "{% macro_block macro3 %}"
+                "{% macro_arg %}"
+                    "contents one"
+                "{% endmacro_arg %}"
+                "{% macro_arg %}"
+                    "contents two"
+                "{% endmacro_arg %}"
+            "{% endmacro_block %}")
+
+    def test_macro_kwarg_with_too_few_arguments(self):
+        """ if macro_kwarg tag is called with too few arguments,
+        it should raise an exception.
+        """
+        self.assertRaisesRegexp(
+            template.TemplateSyntaxError,
+            r"^.+ tag requires exactly one argument, a keyword$",
+            Template,
+            self.LOAD_MACROS + self.MACRO3_DEFINITION +
+            "{% macro_block macro3 %}"
+                "{% macro_kwarg %}"
+                    "contents"
+                "{% endmacro_kwarg %}"
+            "{% endmacro_block %}")
+
+    def test_macro_kwarg_with_too_many_arguments(self):
+        """ if macro_kwarg tag is called with too many arguments,
+        it should raise an exception.
+        """
+        self.assertRaisesRegexp(
+            template.TemplateSyntaxError,
+            r"^.+ tag requires exactly one argument, a keyword$",
+            Template,
+            self.LOAD_MACROS + self.MACRO3_DEFINITION +
+            "{% macro_block macro3 %}"
+                "{% macro_kwarg kwarg kwarg %}"
+                    "contents"
+                "{% endmacro_kwarg %}"
+            "{% endmacro_block %}")

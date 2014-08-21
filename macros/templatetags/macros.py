@@ -46,6 +46,13 @@ class DefineMacroNode(template.Node):
         self.kwargs = kwargs
  
     def render(self, context):
+        # convert template variable defaults into resolved
+        # variables.
+        #
+        ## recall all defaults are template variables
+        self.kwargs = {k:v.resolve(context)
+            for k, v in self.kwargs.iteritems()}
+
         ## empty string - {% macro %} tag has no output
         return ''
  
@@ -79,7 +86,9 @@ def do_macro(parser, token):
     # filters).
     ## we'll want to capture the name and value from
     ## the regex as well.
-    kwarg_regex = r'^([A-Za-z_][\w_]*)=(.+)$'
+    kwarg_regex = (
+        r'^([A-Za-z_][\w_]*)=(".*"|{0}.*{0}|[A-Za-z_][\w_]*)$'.format(
+            "'"))
     # leave further validation to the template variable class
 
     args = []
@@ -117,7 +126,14 @@ class LoadMacrosNode(template.Node):
     """ The template tag node for loading macros from
     an external sheet.
     """
+    def __init__(self, macros):
+        self.macros = macros
+        
     def render(self, context):
+        # render all macro definitions in the current
+        # context to set their template variable default
+        # arguments:
+        map(lambda x: x.render(context), self.macros)
         ## empty string - {% loadmacros %} tag does no output
         return ''
  
@@ -132,7 +148,7 @@ def do_loadmacros(parser, token):
         tag_name, filename = token.split_contents()
     except ValueError:
         raise template.TemplateSyntaxError(
-            "'{0}' tag requires at least one argument (macro name)".format(
+            "'{0}' tag requires exactly one argument (filename)".format(
             token.contents.split()[0]))
     if filename[0] in ('"', "'") and filename[-1] == filename[0]:
         filename = filename[1:-1]
@@ -147,7 +163,9 @@ def do_loadmacros(parser, token):
     _setup_macros_dict(parser)
     for macro in macros:
         parser._macros[macro.name] = macro
-    return LoadMacrosNode()
+    # pass macros to LoadMacrosNode so that it can
+    # resolve the macros template variable kwargs on render
+    return LoadMacrosNode(macros)
  
  
 class UseMacroNode(template.Node):
@@ -177,7 +195,9 @@ class UseMacroNode(template.Node):
             if name in self.kwargs:
                 context[name] = self.kwargs[name].resolve(context)
             else:
-                context[name] = default.resolve(context)
+                # default template variable is resolved when
+                # the macro definition is rendered.
+                context[name] = default
 
         # return the nodelist rendered in the adjusted context
         return self.macro.nodelist.render(context)
@@ -207,8 +227,11 @@ def do_usemacro(parser, token):
     # leaving most validation up to the template.Variable
     # class, but use regex here so that validation could
     # be added in future if necessary.
-    kwarg_regex = r'^([A-Za-z_][\w_]*)=(.+)$'
-    arg_regex = r'^(.+)$'
+    kwarg_regex = (
+        r'^([A-Za-z_][\w_]*)=(".*"|{0}.*{0}|[A-Za-z_][\w_]*)$'.format(
+            "'"))
+    arg_regex = r'^([A-Za-z_][\w_]*|".*"|{0}.*{0})$'.format(
+        "'")
     for value in values:
         # must check against the kwarg regex first
         # because the arg regex matches everything!
@@ -261,9 +284,9 @@ class MacroBlockNode(template.Node):
                 # add the rendered contents of the tag to the context
                 context[name] = self.kwargs[name].nodelist.render(context)
             except KeyError:
-                # default value is a template variable that needs to be
-                # resolved in the context.
-                context[name] = default.resolve(context)
+                # default template variable is resolved when
+                # the macro definition is rendered.
+                context[name] = default
 
         return self.macro.nodelist.render(context)
 
@@ -278,7 +301,7 @@ def do_macro_block(parser, token):
     except ValueError:
         raise template.TemplateSyntaxError(
             "{0} tag requires exactly one argument,".format(
-                tag_name) + " a macro's name")
+                token.contents.split()[0]) + " a macro's name")
     # could add extra validation on the macro_name tag
     # here, but probably don't need to since we're checking
     # if there's a macro by that name anyway.
@@ -287,7 +310,8 @@ def do_macro_block(parser, token):
         macro = parser._macros[macro_name]
     except (AttributeError, KeyError):
         raise template.TemplateSyntaxError(
-            "Macro '{0}' is not defined".format(macro))
+            "Macro '{0}' is not defined ".format(macro_name) + 
+            "previously to the {0} tag".format(tag_name))
     # get the arg and kwarg nodes from the nodelist
     nodelist = parser.parse(('endmacro_block', ))
     parser.delete_first_token()
@@ -313,7 +337,7 @@ def do_macro_block(parser, token):
                     # keyword is already in the dict (thus a keyword
                     # argument was passed twice.
                     raise template.TemplateSyntaxError(
-                        "{0} template tag was supplied repeated ".format(tag_name) +
+                        "{0} template tag was supplied ".format(tag_name) +
                         "the same keyword argument multiple times.")
             else:
                 raise template.TemplateSyntaxError(
@@ -321,7 +345,7 @@ def do_macro_block(parser, token):
                     "keyword argument not defined by the {0} macro.".format(macro_name))
         else:
             raise template.TemplateSyntaxError(
-                "{0} template tag received an argument that ".format(tag_name)
+                "{0} template tag received an argument that ".format(tag_name) + 
                 "is neither a arg or a kwarg tag. Make sure there's "
                 "text or template tags directly descending from the {0} tag.".format(tag_name))
 
@@ -330,7 +354,7 @@ def do_macro_block(parser, token):
     if len(args) > len(macro.args):
         raise template.TemplateSyntaxError(
             "{0} template tag was supplied too many ".format(tag_name) +
-            "argument block tags.")
+            "arg block tags.")
         
     macro.parser = parser
     return MacroBlockNode(macro, nodelist, args, kwargs)

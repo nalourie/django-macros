@@ -1,7 +1,4 @@
-To Do:
-    2.) write tests for exceptions in macros.py
-    3.) check out if we can take advantage of django's built in inclusion tags/include tag to make the code more elegant/robust.
-    4.) inspect all source code one last time.
-    5.) package it up with distutils and upload the package to pip.
-
-* things to consider: adding support for filters.
+* things to consider: 
+    - adding support for filters.
+    - adding validation for the macro names, making sure that they are legitimate python variable names.
+    - inspect/optimize source code more.
