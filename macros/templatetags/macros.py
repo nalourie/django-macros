@@ -13,7 +13,6 @@ macros within django templates.
 
 from re import match as regex_match
 from django import template
-from django.template import FilterExpression
 from django.template.loader import get_template
  
 register = template.Library()
@@ -343,11 +342,13 @@ def do_macro_block(parser, token):
                 raise template.TemplateSyntaxError(
                     "{0} template tag was supplied with a ".format(tag_name) +
                     "keyword argument not defined by the {0} macro.".format(macro_name))
-        else:
-            raise template.TemplateSyntaxError(
-                "{0} template tag received an argument that ".format(tag_name) + 
-                "is neither a arg or a kwarg tag. Make sure there's "
-                "text or template tags directly descending from the {0} tag.".format(tag_name))
+## removed this check because you'll want to allow whitespace to format the tags in your
+## templates...
+##        else:
+##            raise template.TemplateSyntaxError(
+##                "{0} template tag received an argument that ".format(tag_name) + 
+##                "is neither a arg or a kwarg tag. Make sure there's "
+##                "text or template tags directly descending from the {0} tag.".format(tag_name))
 
     # check that there aren't more arg tags than args
     # in the macro.

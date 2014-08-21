@@ -943,44 +943,46 @@ class MacrosTests(TestCase):
                     "contents"
                 "{% endmacro_kwarg %}"
             "{% endmacro_block %}")
-
-    def test_macro_block_with_text(self):
-        """ if macro_block is called with text inside it
-        not wrapped in an arg or kwarg tag, it should raise
-        an exception.
-        """
-        self.assertRaisesRegexp(
-            template.TemplateSyntaxError,
-            r"^.+ template tag received an argument that "
-            r"is neither a arg or a kwarg tag. Make sure there's "
-            r"text or template tags directly descending from the .+ tag.$",
-            Template,
-            self.LOAD_MACROS + self.MACRO3_DEFINITION +
-            "{% macro_block macro3 %}"
-                "some text outside a tag"
-                "{% macro_kwarg kwarg %}"
-                    "contents"
-                "{% endmacro_kwarg %}"
-            "{% endmacro_block %}")
-
-    def test_macro_block_with_bad_node(self):
-        """ if macro_block is called with a template tag as
-        a direct descendent of it that is not an arg or
-        kwarg tag, it should raise an exception.
-        """
-        self.assertRaisesRegexp(
-            template.TemplateSyntaxError,
-            r"^.+ template tag received an argument that "
-            r"is neither a arg or a kwarg tag. Make sure there's "
-            r"text or template tags directly descending from the .+ tag.$",
-            Template,
-            self.LOAD_MACROS + self.MACRO3_DEFINITION +
-            "{% macro_block macro3 %}"
-                "{% if True %}{% endif %}"
-                "{% macro_kwarg kwarg %}"
-                    "contents"
-                "{% endmacro_kwarg %}"
-            "{% endmacro_block %}")
+## removed these tests because I've removed the validation that prevents white
+## space/text/template tags in the macro blocks.
+##
+##    def test_macro_block_with_text(self):
+##        """ if macro_block is called with text inside it
+##        not wrapped in an arg or kwarg tag, it should raise
+##        an exception.
+##        """
+##        self.assertRaisesRegexp(
+##            template.TemplateSyntaxError,
+##            r"^.+ template tag received an argument that "
+##            r"is neither a arg or a kwarg tag. Make sure there's "
+##            r"text or template tags directly descending from the .+ tag.$",
+##            Template,
+##            self.LOAD_MACROS + self.MACRO3_DEFINITION +
+##            "{% macro_block macro3 %}"
+##                "some text outside a tag"
+##                "{% macro_kwarg kwarg %}"
+##                    "contents"
+##                "{% endmacro_kwarg %}"
+##            "{% endmacro_block %}")
+##
+##    def test_macro_block_with_bad_node(self):
+##        """ if macro_block is called with a template tag as
+##        a direct descendent of it that is not an arg or
+##        kwarg tag, it should raise an exception.
+##        """
+##        self.assertRaisesRegexp(
+##            template.TemplateSyntaxError,
+##            r"^.+ template tag received an argument that "
+##            r"is neither a arg or a kwarg tag. Make sure there's "
+##            r"text or template tags directly descending from the .+ tag.$",
+##            Template,
+##            self.LOAD_MACROS + self.MACRO3_DEFINITION +
+##            "{% macro_block macro3 %}"
+##                "{% if True %}{% endif %}"
+##                "{% macro_kwarg kwarg %}"
+##                    "contents"
+##                "{% endmacro_kwarg %}"
+##            "{% endmacro_block %}")
 
     def test_macro_block_with_too_many_args(self):
         """ if macro_block is called with more args than
