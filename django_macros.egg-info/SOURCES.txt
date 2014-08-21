@@ -1,0 +1,15 @@
+LICENSE
+MANIFEST.in
+README.md
+setup.py
+django_macros.egg-info/PKG-INFO
+django_macros.egg-info/SOURCES.txt
+django_macros.egg-info/dependency_links.txt
+django_macros.egg-info/requires.txt
+django_macros.egg-info/top_level.txt
+macros/__init__.py
+macros/admin.py
+macros/models.py
+macros/tests.py
+macros/views.py
+macros/templates/macros/tests/testmacros.html
