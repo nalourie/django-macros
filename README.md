@@ -16,7 +16,7 @@ pip install django-macros
 
 Within settings.py, add 'macros' to INSTALLED_APPS:
 
-```
+```python
 INSTALLED_APPS = (
     ...
     'macros',

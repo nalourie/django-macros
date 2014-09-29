@@ -1,6 +1,6 @@
 Metadata-Version: 1.1
 Name: django-macros
-Version: 0.2
+Version: 0.3
 Summary: A Django template tag library for repeating blocks tags and creating in template macros.
 Home-page: https://github.com/nalourie/django-macros
 Author: Nick Lourie
