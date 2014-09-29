@@ -50,7 +50,7 @@ class DefineMacroNode(template.Node):
         #
         ## recall all defaults are template variables
         self.kwargs = {k:v.resolve(context)
-            for k, v in self.kwargs.iteritems()}
+            for k, v in self.kwargs.items()}
 
         ## empty string - {% macro %} tag has no output
         return ''
@@ -190,7 +190,7 @@ class UseMacroNode(template.Node):
                 context[arg] = ""
 
         # add all of use_macros kwargs into context
-        for name, default in self.macro.kwargs.iteritems():
+        for name, default in self.macro.kwargs.items():
             if name in self.kwargs:
                 context[name] = self.kwargs[name].resolve(context)
             else:
@@ -278,7 +278,7 @@ class MacroBlockNode(template.Node):
 
         # take macro_block's kwargs, and sub them
         # into the context for macro's kwargs.
-        for name, default in self.macro.kwargs.iteritems():
+        for name, default in self.macro.kwargs.items():
             try:
                 # add the rendered contents of the tag to the context
                 context[name] = self.kwargs[name].nodelist.render(context)
