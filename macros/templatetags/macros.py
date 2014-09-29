@@ -132,7 +132,9 @@ class LoadMacrosNode(template.Node):
         # render all macro definitions in the current
         # context to set their template variable default
         # arguments:
-        map(lambda x: x.render(context), self.macros)
+        for macro in self.macros:
+            macro.render(context)
+
         ## empty string - {% loadmacros %} tag does no output
         return ''
  
