@@ -229,7 +229,7 @@ def do_usemacro(parser, token):
     kwarg_regex = (
         r'^([A-Za-z_][\w_]*)=(".*"|{0}.*{0}|[A-Za-z_][\w_]*)$'.format(
             "'"))
-    arg_regex = r'^([A-Za-z_][\w_]*|".*"|{0}.*{0})$'.format(
+    arg_regex = r'^([A-Za-z_][\w_]*|".*"|{0}.*{0}|(\d+))$'.format(
         "'")
     for value in values:
         # must check against the kwarg regex first
