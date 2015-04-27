@@ -52,7 +52,7 @@ When you have a section of your template you want to repeat, but don't want to h
 Then when you want to use the macro, simply do:
 
 ```
-{% use_macro "foo" "bar" kwarg="nondefault value" %}
+{% use_macro some_macro_name "foo" "bar" kwarg="nondefault value" %}
 ```
 
 which renders to:
