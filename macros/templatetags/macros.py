@@ -264,49 +264,13 @@ def do_usemacro(parser, token):
     return UseMacroNode(macro, args, kwargs)
 
 
-class MacroBlockNode(template.Node):
+class MacroBlockNode(UseMacroNode):
     """ Template node object for the extended
     syntax macro useage.
     """
     def __init__(self, macro, nodelist, args, kwargs):
-        # items in the args list and values in the kwargs
-        # dict are assumed to be MacroArgNodes and
-        # MacroKwargNodes respectively.
-        self.macro = macro
         self.nodelist = nodelist
-        self.args = args
-        self.kwargs = kwargs
-
-    def render(self, context):
-        # take the macro_block's args, and sub them
-        # into the context for macro's args.
-        for i, arg in enumerate(self.macro.args):
-            try:
-                argv = self.args[i]
-                if isinstance(argv, MacroArgNode):
-                    context[arg] = argv.nodelist.render(context)
-                else:
-                    context[arg] = argv.resolve(context)
-            except IndexError:
-                # have missing args fail silently as usual
-                context[arg] = ""
-
-        # take macro_block's kwargs, and sub them
-        # into the context for macro's kwargs.
-        for name, default in self.macro.kwargs.items():
-            try:
-                # add the rendered contents of the tag to the context
-                argv = self.kwargs[name]
-                if isinstance(argv, MacroKwargNode):
-                    context[name] = argv.nodelist.render(context)
-                else:
-                    context[name] = argv.resolve(context)
-            except KeyError:
-                # default template variable is resolved when
-                # the macro definition is rendered.
-                context[name] = default
-
-        return self.macro.nodelist.render(context)
+        super(MacroBlockNode, self).__init__(macro, args, kwargs)
 
 
 @register.tag(name="macro_block")
@@ -380,10 +344,15 @@ class MacroArgNode(template.Node):
     def __init__(self, nodelist):
         # save the tag's contents
         self.nodelist = nodelist
+
     def render(self, context):
         # macro_arg tags output nothing.
         return ''
 
+    def resolve(self, context):
+        # we have a "resolve" method similar with Variable,
+        # so rendering code won't have to make any distinctions
+        return self.nodelist.render(context)
 
 
 @register.tag(name="macro_arg")
@@ -399,16 +368,14 @@ def do_macro_arg(parser, token):
     return MacroArgNode(nodelist)
 
 
-class MacroKwargNode(template.Node):
+class MacroKwargNode(MacroArgNode):
     """ Template node object for defining a
     keyword argument to a MacroBlockNode.
     """
     def __init__(self, keyword, nodelist):
-        # save keyword so we know where to
-        # substitute it later.
+        # save keyword so we know where to substitute it later.
         self.keyword = keyword
-        # save the tag's contents
-        self.nodelist = nodelist
+        super(MacroKwargNode, self).__init__(nodelist)
 
     def render(self, context):
         # macro_kwarg tags output nothing.
