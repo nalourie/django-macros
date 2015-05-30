@@ -301,9 +301,7 @@ def do_macro_block(parser, token):
     # (we could do this more semantically, but we loop
     # only once like this as an optimization).
     for node in nodelist:
-        if isinstance(node, MacroArgNode):
-            args.append(node)
-        elif isinstance(node, MacroKwargNode):
+        if isinstance(node, MacroKwargNode):
             if node.keyword in macro.kwargs:
                 # check that the keyword is defined as an argument for
                 # the macro.
@@ -324,6 +322,10 @@ def do_macro_block(parser, token):
                     "{0} template tag was supplied with a "
                     "keyword argument not defined by the {1} macro.".format(
                         tag_name, macro_name))
+        elif isinstance(node, MacroArgNode):
+            # note that MacroKwargNode is also a MacroArgNode,
+            # so this must be under else/elif statement
+            args.append(node)
         elif not isinstance(node, template.TextNode) or node.s.strip() != "":
             # whitespace is allowed, anything else is not
             raise template.TemplateSyntaxError(
