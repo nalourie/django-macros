@@ -202,12 +202,11 @@ class UseMacroNode(template.Node):
 
         # return the nodelist rendered in the adjusted context
         return self.macro.nodelist.render(context)
- 
- 
-@register.tag(name="use_macro")
-def do_usemacro(parser, token):
-    """ The function taking a parsed template tag
-    and returning a UseMacroNode.
+
+
+def parse_macro_params(token):
+    """
+    Common parsing logic for both use_macro and macro_block
     """
     try:
         bits = token.split_contents()
@@ -216,11 +215,6 @@ def do_usemacro(parser, token):
         raise template.TemplateSyntaxError(
             "{0} tag requires at least one argument (macro name)".format(
                 token.contents.split()[0]))
-    try:
-        macro = parser._macros[macro_name]
-    except (AttributeError, KeyError):
-        raise template.TemplateSyntaxError(
-            "Macro '{0}' is not defined previously to the {1} tag".format(macro_name, tag_name))
 
     args = []
     kwargs = {}
@@ -251,6 +245,21 @@ def do_usemacro(parser, token):
                 raise template.TemplateSyntaxError(
                     "Malformed arguments to the {0} tag.".format(
                         tag_name))
+
+    return tag_name, macro_name, args, kwargs
+
+ 
+@register.tag(name="use_macro")
+def do_usemacro(parser, token):
+    """ The function taking a parsed template tag
+    and returning a UseMacroNode.
+    """
+    tag_name, macro_name, args, kwargs = parse_macro_params(token)
+    try:
+        macro = parser._macros[macro_name]
+    except (AttributeError, KeyError):
+        raise template.TemplateSyntaxError(
+            "Macro '{0}' is not defined previously to the {1} tag".format(macro_name, tag_name))
     macro.parser = parser
     return UseMacroNode(macro, args, kwargs)
 
@@ -273,7 +282,11 @@ class MacroBlockNode(template.Node):
         # into the context for macro's args.
         for i, arg in enumerate(self.macro.args):
             try:
-                context[arg] = self.args[i].nodelist.render(context)
+                argv = self.args[i]
+                if isinstance(argv, MacroArgNode):
+                    context[arg] = argv.nodelist.render(context)
+                else:
+                    context[arg] = argv.resolve(context)
             except IndexError:
                 # have missing args fail silently as usual
                 context[arg] = ""
@@ -283,7 +296,11 @@ class MacroBlockNode(template.Node):
         for name, default in self.macro.kwargs.items():
             try:
                 # add the rendered contents of the tag to the context
-                context[name] = self.kwargs[name].nodelist.render(context)
+                argv = self.kwargs[name]
+                if isinstance(argv, MacroKwargNode):
+                    context[name] = argv.nodelist.render(context)
+                else:
+                    context[name] = argv.resolve(context)
             except KeyError:
                 # default template variable is resolved when
                 # the macro definition is rendered.
@@ -297,12 +314,7 @@ def do_macro_block(parser, token):
     """ Function taking parsed template tag
     to a MacroBlockNode.
     """
-    try:
-        tag_name, macro_name = token.split_contents()
-    except ValueError:
-        raise template.TemplateSyntaxError(
-            "{0} tag requires exactly one argument,".format(
-                token.contents.split()[0]) + " a macro's name")
+    tag_name, macro_name, args, kwargs = parse_macro_params(token)
     # could add extra validation on the macro_name tag
     # here, but probably don't need to since we're checking
     # if there's a macro by that name anyway.
@@ -317,8 +329,6 @@ def do_macro_block(parser, token):
     nodelist = parser.parse(('endmacro_block', ))
     parser.delete_first_token()
 
-    args = []
-    kwargs = {}
     # Loop through nodes, sorting into args/kwargs
     ## (we could do this more semantically, but we loop
     ## only once like this as an optimization).
