@@ -198,9 +198,13 @@ class UseMacroNode(template.Node):
             if name in self.kwargs:
                 context[name] = self.kwargs[name].resolve(context)
             else:
-                # default template variable is resolved when
-                # the macro definition is rendered.
-                context[name] = default
+                if isinstance(default, template.Variable):
+                    # variables must be resolved explicitly,
+                    # because otherwise if macro's loaded from
+                    # a separate file things will break
+                    context[name] = default.resolve(context)
+                else:
+                    context[name] = default
 
         # return the nodelist rendered in the adjusted context
         return self.macro.nodelist.render(context)
