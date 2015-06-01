@@ -104,6 +104,20 @@ default arg1 default arg2 Default baz
 Sometimes you might want to include data that is rendered by the template engine, or longer data containing a lot of html in a macro. For this, the syntax of plugging arguments directly into the tag doesn't really work, so instead of `{% use_macro some_macro_name "arg" kwarg_name="value" %}`, use the syntax below:
 
 ```
+{% macro_block some_macro_name %}
+    {% macro_arg %}
+        arg
+    {% endmacro_arg %}
+    
+    {% macro_kwarg kwname %}
+        value
+    {% endmacro_kwarg %}
+{% endmacro_block %}
+```
+
+Note that with this syntax you no longer have to quote strings/arguments. If you have a mix of longer and shorter arguments, you can also use both syntaxes simultaneously:
+
+```
 {% macro_block some_macro_name "arg1" kwname1="value1" %}
     {% macro_arg %}
         arg2
@@ -115,7 +129,6 @@ Sometimes you might want to include data that is rendered by the template engine
 {% endmacro_block %}
 ```
 
-Note that with this syntax you no longer have to quote strings/arguments.
 
 ## Repeated Blocks Useage:
 
