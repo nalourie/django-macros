@@ -158,7 +158,13 @@ def do_loadmacros(parser, token):
             "Malformed argument to the {0} template tag.".format(tag_name) +
             " Argument must be in quotes.")
     t = get_template(filename)
-    macros = t.nodelist.get_nodes_by_type(DefineMacroNode)
+    try:
+        # Works for Django 1.8
+        nodelist = t.template.nodelist
+    except AttributeError:
+        # Works for Django < 1.8
+        nodelist = t.nodelist
+    macros = nodelist.get_nodes_by_type(DefineMacroNode)
     # make sure the _macros attribute dictionary is instantiated
     # on the parser, then add the macros to it.
     _setup_macros_dict(parser)
