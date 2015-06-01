@@ -336,13 +336,16 @@ def do_macro_block(parser, token):
             # note that MacroKwargNode is also a MacroArgNode,
             # so this must be under else/elif statement
             args.append(node)
-        elif not isinstance(node, template.TextNode) or node.s.strip() != "":
-            # whitespace is allowed, anything else is not
-            raise template.TemplateSyntaxError(
-                "{0} template tag received an argument that "
-                "is neither a arg or a kwarg tag. Make sure there's "
-                "text or template tags directly descending "
-                "from the {0} tag.".format(tag_name))
+        # The following is a check that only whitespace is inside the macro_block tag,
+        # but it's currently removed for reasons of backwards compatibility/potential 
+        # uses people might have to put extra stuff in te macro_block tag.
+        # elif not isinstance(node, template.TextNode) or node.s.strip() != "":
+        #     # whitespace is allowed, anything else is not
+        #     raise template.TemplateSyntaxError(
+        #         "{0} template tag received an argument that "
+        #         "is neither a arg or a kwarg tag. Make sure there's "
+        #         "text or template tags directly descending "
+        #         "from the {0} tag.".format(tag_name))
 
     # check that there aren't more arg tags than args
     # in the macro.
