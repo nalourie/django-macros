@@ -5,7 +5,9 @@
 # modified for args and kwargs by Skylar Saveland http://skyl.org
 #
 # updated for django 1.6, modified, and packaged by Nicholas Lourie,
-# while working for kozbox, llc. http://kozbox.com
+# while working for kozbox, llc. http://kozbox.com. Since updated for 
+# django 1.8 with various other improvements by numerous contributors, 
+# see https://github.com/nalourie/django-macros/ for details.
 
 """ Macros.py, part of django-macros, allows for creation of
 macros within django templates.
@@ -311,7 +313,11 @@ def do_macro_block(parser, token):
     # (we could do this more semantically, but we loop
     # only once like this as an optimization).
     for node in nodelist:
-        if isinstance(node, MacroKwargNode):
+        if isinstance(node, MacroArgNode) and not isinstance(node, MacroKwargNode):
+            # note that MacroKwargNode is also a MacroArgNode (via inheritance),
+            # so we must check against this.
+            args.append(node)
+        elif isinstance(node, MacroKwargNode):
             if node.keyword in macro.kwargs:
                 # check that the keyword is defined as an argument for
                 # the macro.
@@ -332,10 +338,6 @@ def do_macro_block(parser, token):
                     "{0} template tag was supplied with a "
                     "keyword argument not defined by the {1} macro.".format(
                         tag_name, macro_name))
-        elif isinstance(node, MacroArgNode):
-            # note that MacroKwargNode is also a MacroArgNode,
-            # so this must be under else/elif statement
-            args.append(node)
         # The following is a check that only whitespace is inside the macro_block tag,
         # but it's currently removed for reasons of backwards compatibility/potential 
         # uses people might have to put extra stuff in te macro_block tag.

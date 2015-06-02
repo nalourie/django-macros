@@ -298,6 +298,15 @@ class MacrosTests(TestCase):
     MACRO1_WITH_NO_ARGS_RENDERED = (
         "first arg: ; second arg: ; "
         "first_kwarg: ; second_kwarg: default;")
+    # test using macro_block with mixed syntax
+    MACRO1_BLOCK_WITH_MIXED_SYNTAX = (
+        "{% macro_block macro1 'a1' first_kwarg='kw1' %}"
+            "{% macro_arg %}a2{% endmacro_arg %}"
+            "{% macro_kwarg second_kwarg %}kw2{% endmacro_kwarg %}"
+        "{% endmacro_block %}")
+    MACRO1_WITH_MIXED_SYNTAX_RENDERED = (
+        "first arg: a1; second arg: a2; "
+        "first_kwarg: kw1; second_kwarg: kw2;")
     # Define a second macro (test lexical scoping of args)
     MACRO2_DEFINITION = (
         "{% macro macro2 first_arg second_arg "
@@ -521,6 +530,15 @@ class MacrosTests(TestCase):
             self.MACRO1_BLOCK_WITH_NO_ARGS)
         c = Context({})
         self.assertEqual(t.render(c), self.MACRO1_WITH_NO_ARGS_RENDERED)
+
+    def test_macro_block_with_mixed_syntax(self):
+        """ make sure that macro_block accepts arguments to the tag itself 
+        as well as child tags.
+        """
+        t = Template(self.LOAD_MACROS + self.MACRO1_DEFINITION +
+                     self.MACRO1_BLOCK_WITH_MIXED_SYNTAX)
+        c = Context({})
+        self.assertEqual(t.render(c), self.MACRO1_WITH_MIXED_SYNTAX_RENDERED)
 
     def test_lexical_scoping(self):
         """ make sure that args and kwargs in macros are lexically
@@ -882,7 +900,7 @@ class MacrosTests(TestCase):
         """
         self.assertRaisesRegexp(
             template.TemplateSyntaxError,
-            r".+ tag requires exactly one argument, a macro's name",
+            r"macro_block tag requires at least one argument \(macro name\)",
             Template,
             self.LOAD_MACROS + self.MACRO3_DEFINITION +
                 "{% macro_block %}{% endmacro_block %}")
