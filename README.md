@@ -4,7 +4,6 @@ django-macros
 Macros accepting positional and keyword arguments, and repeated block tags in the django template system. Sometimes include tags just don't get the job done. Either you have repeated code that you want to keep all in the same single template, or your code needs to dynamically generate and sub in certain values, in a way that the include syntax inhibits. Whatever the case, if you're finding that the built in include tag just isn't working for your use case, then perhaps django-macros is for you.
 
 visit the [github](https://github.com/nalourie/django-macros).
-    
 
 # Installation:
 

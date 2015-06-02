@@ -1,6 +1,6 @@
 Metadata-Version: 1.1
 Name: django-macros
-Version: 0.3.3
+Version: 0.4.0
 Summary: A Django template tag library for repeating blocks tags and creating in template macros.
 Home-page: https://github.com/nalourie/django-macros
 Author: Nick Lourie
@@ -74,7 +74,7 @@ Description: django-macros
         
         ::
         
-            {% use_macro "foo" "bar" kwarg="nondefault value" %}
+            {% use_macro some_macro_name "foo" "bar" kwarg="nondefault value" %}
         
         which renders to:
         
@@ -145,13 +145,26 @@ Description: django-macros
                     arg
                 {% endmacro_arg %}
                 
-                {% macro_kwarg kwarg_name %}
+                {% macro_kwarg kwname %}
                     value
                 {% endmacro_kwarg %}
             {% endmacro_block %}
         
         Note that with this syntax you no longer have to quote
-        strings/arguments.
+        strings/arguments. If you have a mix of longer and shorter arguments,
+        you can also use both syntaxes simultaneously:
+        
+        ::
+        
+            {% macro_block some_macro_name "arg1" kwname1="value1" %}
+                {% macro_arg %}
+                    arg2
+                {% endmacro_arg %}
+                
+                {% macro_kwarg kwname2 %}
+                    value2
+                {% endmacro_kwarg %}
+            {% endmacro_block %}
         
         Repeated Blocks Useage:
         -----------------------
@@ -167,7 +180,7 @@ Description: django-macros
         
         ::
         
-            {% repeatedblock some_block name %}
+            {% repeated_block some_block name %}
                 ...
                 ...
                 ...
@@ -184,7 +197,7 @@ Description: django-macros
         
         ::
         
-            {% repeatedblock title %}Repeated Block Tags{% endblock %}
+            {% repeated_block title %}Repeated Block Tags{% endblock %}
         
             {% repeat title %}
         
@@ -197,7 +210,7 @@ Description: django-macros
             Repeated Block Tags
         
         Make sure that the ``{% repeat ... %}`` tag comes **after** the
-        ``{% repeatedblock ... %} ... {% endblock %}`` tag.
+        ``{% repeated_block ... %} ... {% endblock %}`` tag.
         
         They are fully inheritable, repeat inherited content and should work
         exactly as you'd expect a block tag to work.
@@ -208,7 +221,7 @@ Description: django-macros
         Design Explanation for repeatedblocks.py:
         -----------------------------------------
         
-        Using a "repeatedblock" followed by "repeat" tag structure, as opposed
+        Using a "repeated\_block" followed by "repeat" tag structure, as opposed
         to just repeating normal block tags, forces developers to be more
         explicit about what is repeated. Thus, it guards against the potential
         to remove block tags later in development, not realize they are
