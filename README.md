@@ -4,7 +4,6 @@ django-macros
 Macros accepting positional and keyword arguments, and repeated block tags in the django template system. Sometimes include tags just don't get the job done. Either you have repeated code that you want to keep all in the same single template, or your code needs to dynamically generate and sub in certain values, in a way that the include syntax inhibits. Whatever the case, if you're finding that the built in include tag just isn't working for your use case, then perhaps django-macros is for you.
 
 visit the [github](https://github.com/nalourie/django-macros).
-    
 
 # Installation:
 
@@ -109,13 +108,26 @@ Sometimes you might want to include data that is rendered by the template engine
         arg
     {% endmacro_arg %}
     
-    {% macro_kwarg kwarg_name %}
+    {% macro_kwarg kwname %}
         value
     {% endmacro_kwarg %}
 {% endmacro_block %}
 ```
 
-Note that with this syntax you no longer have to quote strings/arguments.
+Note that with this syntax you no longer have to quote strings/arguments. If you have a mix of longer and shorter arguments, you can also use both syntaxes simultaneously:
+
+```
+{% macro_block some_macro_name "arg1" kwname1="value1" %}
+    {% macro_arg %}
+        arg2
+    {% endmacro_arg %}
+    
+    {% macro_kwarg kwname2 %}
+        value2
+    {% endmacro_kwarg %}
+{% endmacro_block %}
+```
+
 
 ## Repeated Blocks Useage:
 
